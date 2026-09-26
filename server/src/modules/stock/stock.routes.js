@@ -1,18 +1,12 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middleware/auth.js';
+import { validate } from '../../middleware/validate.js';
+import * as c from './stock.controller.js';
+import * as s from './stock.schema.js';
 
 export const stockRouter = Router();
 
 stockRouter.use(requireAuth);
 
-const stub = (req, res) => {
-  res.status(501).json({
-    success: false,
-    error: {
-      code: 'NOT_IMPLEMENTED',
-      message: 'Stock overview module is scheduled for implementation by Member 3',
-    },
-  });
-};
-
-stockRouter.use(stub);
+stockRouter.get('/export', c.exportCSV);
+stockRouter.get('/', validate({ query: s.listStockQuery }), c.list);

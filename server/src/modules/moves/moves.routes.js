@@ -1,18 +1,13 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middleware/auth.js';
+import { validate } from '../../middleware/validate.js';
+import * as c from './moves.controller.js';
+import * as s from './moves.schema.js';
 
 export const movesRouter = Router();
 
 movesRouter.use(requireAuth);
 
-const stub = (req, res) => {
-  res.status(501).json({
-    success: false,
-    error: {
-      code: 'NOT_IMPLEMENTED',
-      message: 'Moves history ledger module is scheduled for implementation by Member 3',
-    },
-  });
-};
-
-movesRouter.use(stub);
+movesRouter.get('/export', c.exportCSV);
+movesRouter.get('/board', validate({ query: s.listMovesQuery }), c.getBoard);
+movesRouter.get('/', validate({ query: s.listMovesQuery }), c.list);
