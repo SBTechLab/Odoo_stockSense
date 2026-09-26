@@ -8,6 +8,7 @@ import { Modal } from '../../components/ui/Modal.jsx';
 import { SearchInput } from '../../components/ui/SearchInput.jsx';
 import { FilterChips } from '../../components/ui/FilterChips.jsx';
 import { Select } from '../../components/ui/Select.jsx';
+import { FormField } from '../../components/ui/FormField.jsx';
 import { Plus, Download, Upload, Package, Layers, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { listProductsApi, bulkImportProductsApi, exportProductsApi } from '../../api/products.js';
@@ -30,7 +31,6 @@ export function ProductsPage() {
 
   // CSV Import state
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [importText, setImportText] = useState('');
   const [parsedRows, setParsedRows] = useState([]);
   const [importing, setImporting] = useState(false);
   const [importResults, setImportResults] = useState(null);
@@ -122,7 +122,6 @@ export function ProductsPage() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target?.result || '';
-      setImportText(text);
       const parsed = parseCSVString(text);
       setParsedRows(parsed);
     };

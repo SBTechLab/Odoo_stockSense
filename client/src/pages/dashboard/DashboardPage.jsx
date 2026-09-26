@@ -119,7 +119,7 @@ export function DashboardPage() {
       setTrends(trendsRes.data || []);
       setTopData(topRes.data || { topProducts: [], lowStockList: [] });
       setRecentMoves(movesRes.data || []);
-    } catch (_err) {
+    } catch {
       if (!silent) toast.error('Failed to load dashboard metrics');
     } finally {
       if (!silent) setLoading(false);
@@ -132,6 +132,7 @@ export function DashboardPage() {
 
   useEffect(() => {
     fetchDashboardData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [warehouseId, locationId, categoryId, type, status]);
 
   // Real-time SSE updates

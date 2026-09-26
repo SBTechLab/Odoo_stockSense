@@ -43,7 +43,7 @@ export function ProductFormPage() {
   const isNew = !id || id === 'new';
 
   const [activeTab, setActiveTab] = useState('overview');
-  const [loading, setLoading] = useState(!isNew);
+  const [_loading, setLoading] = useState(!isNew);
   const [categories, setCategories] = useState([]);
   const [locations, setLocations] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
@@ -140,6 +140,7 @@ export function ProductFormPage() {
   useEffect(() => {
     loadMasterData();
     fetchProductDetail();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Auto-suggest SKU from name when creating
