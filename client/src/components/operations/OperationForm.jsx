@@ -1,5 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -32,6 +32,7 @@ import { StatusPipeline } from '../ui/StatusPipeline.jsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.jsx';
 import { Spinner } from '../ui/Spinner.jsx';
 import { LinesEditor } from './LinesEditor.jsx';
+import { VoiceCommand } from '../voice/VoiceCommand.jsx';
 import { ArrowLeft, Printer, X } from 'lucide-react';
 
 const PIPELINES = {
@@ -76,6 +77,7 @@ const formSchema = z.object({
 
 export function OperationForm({ type, operationId, baseRoute }) {
   const navigate = useNavigate();
+  const routerLocation = useLocation();
   const { user, hasRole } = useAuth();
   const isNew = !operationId;
   const canCancel = hasRole('ADMIN', 'MANAGER');
@@ -87,6 +89,8 @@ export function OperationForm({ type, operationId, baseRoute }) {
   const [actionLoading, setActionLoading] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
   const [linesDirty, setLinesDirty] = useState(false);
+  // Locations chosen by a voice command; applied once that warehouse's locations have loaded.
+  const pendingVoiceLocations = useRef(null);
 
   const { data: warehouses = [] } = useFetch(listWarehousesApi, []);
   const { data: products = [] } = useFetch(() => listProductsApi({ limit: 100 }), []);
@@ -154,6 +158,15 @@ export function OperationForm({ type, operationId, baseRoute }) {
   useEffect(() => {
     if (!isNew || internalLocations.length === 0) return;
     const ids = new Set(internalLocations.map((l) => l.id));
+    const pending = pendingVoiceLocations.current;
+    if (pending && pending.warehouseId === selectedWarehouseId) {
+      // wait until the voice-selected warehouse's locations are the ones loaded
+      if (![pending.sourceLocationId, pending.destLocationId].filter(Boolean).every((id) => ids.has(id))) return;
+      if (pending.sourceLocationId) setValue('sourceLocationId', pending.sourceLocationId, { shouldDirty: true });
+      if (pending.destLocationId) setValue('destLocationId', pending.destLocationId, { shouldDirty: true });
+      pendingVoiceLocations.current = null;
+      return;
+    }
     const wh = warehouses.find((w) => w.id === selectedWarehouseId);
     const defaultId = wh?.defaultLocationId && ids.has(wh.defaultLocationId) ? wh.defaultLocationId : internalLocations[0].id;
     const src = watch('sourceLocationId');
@@ -207,6 +220,46 @@ export function OperationForm({ type, operationId, baseRoute }) {
     setLines(next);
     setLinesDirty(true);
   };
+
+  /** Voice "Edit": fill this form with the parsed command (or open the right form for another type). */
+  const applyVoiceResult = (result) => {
+    const voiceType = result.intent.value;
+    if (voiceType !== type) {
+      navigate(`${ROUTE_MAP[voiceType]}/new`, { state: { voiceResult: result } });
+      return;
+    }
+    if (result.warehouse) {
+      pendingVoiceLocations.current = {
+        warehouseId: result.warehouse.id,
+        sourceLocationId: result.sourceLocation?.id ?? null,
+        destLocationId: result.destLocation?.id ?? null,
+      };
+      setValue('warehouseId', result.warehouse.id, { shouldDirty: true });
+    }
+    setValue('contactId', result.contact?.id ?? '', { shouldDirty: true });
+    if (result.product) {
+      setLines([{ productId: result.product.id, quantity: result.quantity > 0 ? result.quantity : 1, _key: Date.now() }]);
+      setLinesDirty(true);
+    }
+    toast.info('Form filled from your command — review and click Create.');
+  };
+
+  /** Voice "Confirm": the operation was created as a draft; open it. */
+  const handleVoiceCreated = (op, voiceType) => {
+    navigate(`${ROUTE_MAP[voiceType]}/${op.id}`);
+  };
+
+  // Arriving from another form's voice panel with a different operation type.
+  const voiceFromNav = routerLocation.state?.voiceResult;
+  const appliedNavVoice = useRef(false);
+  useEffect(() => {
+    if (!isNew || !voiceFromNav || appliedNavVoice.current || warehouses.length === 0) return;
+    appliedNavVoice.current = true;
+    applyVoiceResult(voiceFromNav);
+    // clear history state so a refresh doesn't re-apply it
+    navigate(routerLocation.pathname, { replace: true, state: null });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isNew, voiceFromNav, warehouses.length]);
 
   const validateLines = () => {
     const errs = lines.map((l) => {
@@ -380,6 +433,9 @@ export function OperationForm({ type, operationId, baseRoute }) {
           <StatusBadge status={status} />
         </div>
       )}
+
+      {/* Voice-to-Action (new operations only) */}
+      {isNew && <VoiceCommand contextType={type} onEdit={applyVoiceResult} onCreated={handleVoiceCreated} />}
 
       {/* Form */}
       <form onSubmit={handleSubmit(onSave, onInvalid)} className="space-y-5">

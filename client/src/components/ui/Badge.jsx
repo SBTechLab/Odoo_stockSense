@@ -14,7 +14,7 @@ export function Badge({
   variant = 'zinc',
   color,
   size = 'md',
-  dot,
+  dot: _dot, // accepted for API compatibility; not rendered yet
   icon,
   children,
   className,

@@ -21,6 +21,7 @@ import { dashboardRouter } from './modules/dashboard/dashboard.routes.js';
 import { replenishmentRouter } from './modules/replenishment/replenishment.routes.js';
 import { notificationsRouter } from './modules/notifications/notifications.routes.js';
 import { searchRouter } from './modules/search/search.routes.js';
+import { voiceRouter } from './modules/voice/voice.routes.js';
 
 export const routes = Router();
 
@@ -47,3 +48,4 @@ routes.use('/dashboard', dashboardRouter);
 routes.use('/replenishment', replenishmentRouter);
 routes.use('/notifications', notificationsRouter);
 routes.use('/search', searchRouter);
+routes.use('/voice', voiceRouter);

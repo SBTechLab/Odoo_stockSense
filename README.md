@@ -143,6 +143,8 @@ References are auto-generated **per warehouse and per operation type**, formatte
 | 13 | **Offline-first** | Self-hosted fonts, no CDNs, local database, OTP via console fallback | P2 |
 | 14 | **Background jobs** | Periodic and event-driven scans create low-stock and late-operation notifications | P1 |
 | 15 | **Reservation logic** | *Free to Use = On Hand − stock reserved by READY deliveries and transfers* | P0 |
+| 16 | **🎙️ Voice-to-Action** | Say or type *"Receive 500 kg steel rods from Tata Steel in warehouse 1"* in **English, Hindi or Gujarati**. StockSense fills the Receipt/Delivery/Transfer form and shows a summary with **Confirm** (creates a draft) or **Edit** | P1 |
+| 17 | **🗺️ Warehouse Map** | Visual floor plan of racks/rooms with capacity use (green / amber / red) and a click-to-open product drawer | P1 |
 
 ---
 
@@ -512,6 +514,7 @@ Base URL: `/api`. All routes except auth and health require the `token` cookie. 
 | **Replenishment** | `GET /replenishment` |
 | **Notifications** | `GET /notifications` · `PATCH /notifications/:id/read` · `POST /notifications/read-all` |
 | **Search** | `GET /search?q=` |
+| **Voice** | `POST /voice/parse` `{ text, language: en-IN\|hi-IN\|gu-IN, contextType? }` → parsed operation suggestion (never writes) |
 | **Events (SSE)** | `GET /events` |
 | **Activity** | `GET /activity` |
 
