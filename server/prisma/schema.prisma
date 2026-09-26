@@ -1,0 +1,369 @@
+// StockSense — Prisma schema (complete foundation).
+// Owner: Member 1. Later changes require a NEW migration (never edit old ones).
+// Quantities: Decimal(14,3). Money: Decimal(12,2). IDs: uuid.
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum Role {
+  ADMIN
+  MANAGER
+  STAFF
+}
+
+enum LocationType {
+  INTERNAL
+  VENDOR
+  CUSTOMER
+  ADJUSTMENT
+}
+
+enum ContactType {
+  VENDOR
+  CUSTOMER
+  BOTH
+}
+
+enum OperationType {
+  RECEIPT
+  DELIVERY
+  INTERNAL
+  ADJUSTMENT
+}
+
+enum OperationStatus {
+  DRAFT
+  WAITING
+  READY
+  DONE
+  CANCELED
+}
+
+enum NotificationType {
+  LOW_STOCK
+  OUT_OF_STOCK
+  LATE_OPERATION
+  SYSTEM
+}
+
+// ───────────────────────────── Auth / users ─────────────────────────────
+
+model User {
+  id           String    @id @default(uuid())
+  name         String
+  loginId      String    @unique
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(STAFF)
+  isActive     Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  passwordResetOtps     PasswordResetOtp[]
+  responsibleOperations Operation[]        @relation("OperationResponsible")
+  createdOperations     Operation[]        @relation("OperationCreatedBy")
+  validatedOperations   Operation[]        @relation("OperationValidatedBy")
+  stockMoves            StockMove[]
+  notifications         Notification[]
+  activityLogs          ActivityLog[]
+
+  @@index([role])
+}
+
+model PasswordResetOtp {
+  id        String    @id @default(uuid())
+  userId    String
+  otpHash   String
+  expiresAt DateTime
+  attempts  Int       @default(0)
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, createdAt])
+}
+
+// ───────────────────────────── Warehouses / locations ─────────────────────────────
+
+model Warehouse {
+  id                String   @id @default(uuid())
+  name              String
+  shortCode         String   @unique // uppercase, e.g. "WH"
+  address           String?
+  isActive          Boolean  @default(true)
+  defaultLocationId String?  @unique
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  defaultLocation  Location?         @relation("WarehouseDefaultLocation", fields: [defaultLocationId], references: [id], onDelete: SetNull)
+  locations        Location[]        @relation("WarehouseLocations")
+  reorderRules     ReorderRule[]
+  operations       Operation[]
+  sequenceCounters SequenceCounter[]
+
+  @@index([isActive])
+}
+
+model Location {
+  id          String       @id @default(uuid())
+  name        String
+  shortCode   String // uppercase, unique per warehouse
+  type        LocationType @default(INTERNAL)
+  warehouseId String? // null for virtual locations (VENDOR / CUSTOMER / ADJUSTMENT)
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  warehouse          Warehouse?  @relation("WarehouseLocations", fields: [warehouseId], references: [id])
+  defaultForWarehouse Warehouse? @relation("WarehouseDefaultLocation")
+  quants             StockQuant[]
+  sourceOperations   Operation[] @relation("OperationSource")
+  destOperations     Operation[] @relation("OperationDest")
+  movesFrom          StockMove[] @relation("MoveFrom")
+  movesTo            StockMove[] @relation("MoveTo")
+
+  @@unique([warehouseId, shortCode])
+  @@index([type])
+}
+
+// ───────────────────────────── Catalog ─────────────────────────────
+
+model Category {
+  id          String    @id @default(uuid())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  products Product[]
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  sku         String   @unique // uppercase
+  categoryId  String?
+  uom         String   @default("Units") // Units, kg, g, m, L, box, pack
+  costPrice   Decimal  @default(0) @db.Decimal(12, 2)
+  salePrice   Decimal? @db.Decimal(12, 2)
+  description String?
+  barcode     String?  @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category       Category?       @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  quants         StockQuant[]
+  reorderRules   ReorderRule[]
+  operationLines OperationLine[]
+  stockMoves     StockMove[]
+  notifications  Notification[]
+
+  @@index([name])
+  @@index([categoryId])
+  @@index([isActive])
+}
+
+model ReorderRule {
+  id                String   @id @default(uuid())
+  productId         String
+  warehouseId       String
+  minQty            Decimal  @db.Decimal(14, 3)
+  maxQty            Decimal  @db.Decimal(14, 3)
+  preferredVendorId String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  product         Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  warehouse       Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  preferredVendor Contact?  @relation(fields: [preferredVendorId], references: [id], onDelete: SetNull)
+
+  @@unique([productId, warehouseId])
+}
+
+model Contact {
+  id        String      @id @default(uuid())
+  name      String
+  type      ContactType @default(BOTH)
+  email     String?
+  phone     String?
+  address   String?
+  gstin     String?
+  isActive  Boolean     @default(true)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  operations   Operation[]
+  reorderRules ReorderRule[]
+
+  @@index([name])
+  @@index([type])
+}
+
+// ───────────────────────────── Stock ─────────────────────────────
+
+/// On-hand quantity of a product in an INTERNAL location. Virtual locations never have quants.
+model StockQuant {
+  id         String   @id @default(uuid())
+  productId  String
+  locationId String
+  quantity   Decimal  @default(0) @db.Decimal(14, 3)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  location Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, locationId])
+  @@index([locationId])
+}
+
+model Operation {
+  id               String          @id @default(uuid())
+  reference        String          @unique // e.g. WH/IN/0001
+  type             OperationType
+  status           OperationStatus @default(DRAFT)
+  warehouseId      String
+  contactId        String?
+  sourceLocationId String
+  destLocationId   String
+  scheduledDate    DateTime        @default(now())
+  responsibleId    String?
+  deliveryAddress  String?
+  reason           String? // adjustments
+  notes            String?
+  createdById      String?
+  validatedById    String?
+  validatedAt      DateTime?
+  canceledAt       DateTime?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  warehouse      Warehouse       @relation(fields: [warehouseId], references: [id])
+  contact        Contact?        @relation(fields: [contactId], references: [id], onDelete: SetNull)
+  sourceLocation Location        @relation("OperationSource", fields: [sourceLocationId], references: [id])
+  destLocation   Location        @relation("OperationDest", fields: [destLocationId], references: [id])
+  responsible    User?           @relation("OperationResponsible", fields: [responsibleId], references: [id], onDelete: SetNull)
+  createdBy      User?           @relation("OperationCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  validatedBy    User?           @relation("OperationValidatedBy", fields: [validatedById], references: [id], onDelete: SetNull)
+  lines          OperationLine[]
+  stockMoves     StockMove[]
+  notifications  Notification[]
+
+  @@index([type, status])
+  @@index([warehouseId])
+  @@index([scheduledDate])
+  @@index([contactId])
+}
+
+model OperationLine {
+  id                  String   @id @default(uuid())
+  operationId         String
+  productId           String
+  /// Demand quantity; for adjustments the signed difference (counted - theoretical).
+  quantity            Decimal  @db.Decimal(14, 3)
+  theoreticalQuantity Decimal? @db.Decimal(14, 3)
+  countedQuantity     Decimal? @db.Decimal(14, 3)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  operation  Operation   @relation(fields: [operationId], references: [id], onDelete: Cascade)
+  product    Product     @relation(fields: [productId], references: [id])
+  stockMoves StockMove[]
+
+  @@index([operationId])
+  @@index([productId])
+}
+
+/// Immutable stock ledger. One row per product movement; quantity is always positive.
+model StockMove {
+  id              String        @id @default(uuid())
+  reference       String
+  type            OperationType
+  operationId     String?
+  operationLineId String?
+  productId       String
+  fromLocationId  String
+  toLocationId    String
+  quantity        Decimal       @db.Decimal(14, 3)
+  unitCost        Decimal       @default(0) @db.Decimal(12, 2)
+  userId          String?
+  note            String?
+  createdAt       DateTime      @default(now())
+
+  operation     Operation?     @relation(fields: [operationId], references: [id], onDelete: SetNull)
+  operationLine OperationLine? @relation(fields: [operationLineId], references: [id], onDelete: SetNull)
+  product       Product        @relation(fields: [productId], references: [id])
+  fromLocation  Location       @relation("MoveFrom", fields: [fromLocationId], references: [id])
+  toLocation    Location       @relation("MoveTo", fields: [toLocationId], references: [id])
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([productId, createdAt])
+  @@index([reference])
+  @@index([createdAt])
+  @@index([fromLocationId])
+  @@index([toLocationId])
+}
+
+model SequenceCounter {
+  id          String        @id @default(uuid())
+  warehouseId String
+  type        OperationType
+  nextNumber  Int           @default(1)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  warehouse Warehouse @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@unique([warehouseId, type])
+}
+
+// ───────────────────────────── Notifications / audit ─────────────────────────────
+
+model Notification {
+  id          String           @id @default(uuid())
+  userId      String? // null = broadcast to everyone
+  type        NotificationType
+  title       String
+  message     String
+  link        String?
+  productId   String?
+  operationId String?
+  readAt      DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  user      User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product   Product?   @relation(fields: [productId], references: [id], onDelete: Cascade)
+  operation Operation? @relation(fields: [operationId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([createdAt])
+}
+
+model ActivityLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String // e.g. "warehouse.create"
+  entityType String // e.g. "Warehouse"
+  entityId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
