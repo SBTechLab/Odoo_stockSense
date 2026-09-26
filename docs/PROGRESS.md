@@ -246,3 +246,28 @@ Your dashboard KPI cards can link directly into the operational list pages with 
 
 ## Member 3 — Products, Stock, Dashboard & Intelligence
 *(To be completed by Member 3)*
+
+---
+
+## Bug-fix pass — Operations module (all roles)
+
+**Symptom:** Receipts, Deliveries, Transfers and Adjustments pages were blank or could not save, for ADMIN, MANAGER and STAFF alike. The backend API was working; the failures were in the UI.
+
+**Fixed**
+- `client/src/hooks/useFetch.js`: `data` now starts as `undefined` instead of `null`, so `const { data: rows = [] } = useFetch(...)` defaults work. Before, `warehouses.map` crashed on first render and React unmounted the whole page.
+- `components/operations/OperationForm.jsx`:
+  - Hidden optional ids (source on receipts, destination on deliveries, empty contact) no longer fail zod validation. This silently blocked "Create".
+  - Validation errors now show a toast.
+  - Save is enabled when only lines or the contact change.
+  - Locations are re-picked when the warehouse changes.
+  - Contacts of type BOTH now appear.
+  - Products load up to 100.
+  - The form reloads availability after each action.
+- `components/operations/OperationListPage.jsx`, `pages/operations/AdjustmentsPage.jsx`: pagination now reads `meta` from `useFetch` and uses the `onPageChange` prop.
+- `pages/operations/AdjustmentFormPage.jsx`: location follows the selected warehouse; products load up to 100.
+- `server/src/modules/operations/operations.service.js`:
+  - List filters are combined with `AND`, so late, status, date, location and search no longer overwrite each other.
+  - Validate throws a real `InsufficientStockError` (409 with a readable message) and moves the operation to WAITING when stock has disappeared.
+  - Transfer edits reject source equal to destination.
+
+**How to test:** log in as `admin01`, `manager01` and `staff001` in turn. For each user, create a Receipt, click Mark as To Do, then Validate, then Print. Repeat with a Delivery and a Transfer. A delivery for more than the on-hand quantity goes to Waiting after Mark as To Do. STAFF does not see Cancel or Delete, and the API returns 403 for them.
