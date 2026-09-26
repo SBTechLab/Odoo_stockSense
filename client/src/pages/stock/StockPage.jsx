@@ -120,7 +120,7 @@ export function StockPage() {
       try {
         const res = await getAdjustmentOnHandApi(locId, row.productId);
         setSystemBalance(res.data?.onHand ?? row.onHand ?? 0);
-      } catch (err) {
+      } catch {
         setSystemBalance(row.onHand ?? 0);
       } finally {
         setFetchingOnHand(false);
@@ -138,7 +138,7 @@ export function StockPage() {
         const res = await getAdjustmentOnHandApi(newLocId, targetRow.productId);
         setSystemBalance(res.data?.onHand ?? 0);
         setCountedQty(String(res.data?.onHand ?? 0));
-      } catch (err) {
+      } catch {
         setSystemBalance(0);
       } finally {
         setFetchingOnHand(false);
