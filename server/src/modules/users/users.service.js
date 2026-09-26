@@ -3,6 +3,8 @@ import { logActivity } from '../../lib/activity.js';
 import { buildMeta, parsePagination } from '../../lib/pagination.js';
 import { ForbiddenError, NotFoundError } from '../../lib/errors.js';
 import { publicUserSelect } from '../../middleware/auth.js';
+import { queueMail } from '../../lib/mailer.js';
+import { accountChangedByAdminEmail } from '../../lib/emailTemplates.js';
 
 export async function list(query) {
   const pg = parsePagination(query, { allowedSort: ['name', 'loginId', 'createdAt', 'lastLoginAt', 'role'], defaultSort: 'name' });
@@ -44,5 +46,22 @@ export async function update(actor, id, { role, isActive }) {
     entityId: id,
     metadata: { loginId: user.loginId, from: { role: user.role, isActive: user.isActive }, to: { role, isActive } },
   });
+
+  const roleChanged = role !== undefined && role !== user.role;
+  const statusChanged = isActive !== undefined && isActive !== user.isActive;
+  if (roleChanged || statusChanged) {
+    queueMail(
+      updated.email,
+      accountChangedByAdminEmail({
+        name: updated.name,
+        loginId: updated.loginId,
+        adminName: actor.name,
+        fromRole: user.role,
+        toRole: role,
+        fromActive: user.isActive,
+        toActive: isActive,
+      }),
+    );
+  }
   return updated;
 }

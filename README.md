@@ -176,7 +176,7 @@ References are auto-generated **per warehouse and per operation type**, formatte
 | **helmet**, **cors**, **cookie-parser** | Security headers, CORS with credentials, cookie parsing |
 | **express-rate-limit** | Throttling for auth and OTP endpoints and the general API |
 | **morgan** | HTTP request logging in development |
-| **nodemailer** | OTP emails via SMTP (optional; falls back to the console) |
+| **nodemailer** | Branded HTML emails (OTP, welcome, login alerts, account changes) via SMTP / Gmail; falls back to the console |
 | **dotenv** | Environment loading |
 
 ### Tooling
@@ -652,9 +652,26 @@ npm run dev
 | `DATABASE_URL` | ✅ | — | PostgreSQL connection string |
 | `JWT_SECRET` | ✅ | — | ≥ 32 characters, random |
 | `JWT_EXPIRES_IN` | | `8h` | Session lifetime |
-| `SMTP_HOST` | | *(empty)* | If empty, OTP codes are **printed to the server console** |
-| `SMTP_PORT` / `SMTP_USER` / `SMTP_PASS` | | `587` | SMTP credentials |
-| `SMTP_FROM` | | `StockSense <no-reply@stocksense.local>` | Sender address |
+| `SMTP_HOST` | | *(empty)* | e.g. `smtp.gmail.com`. If empty, emails (incl. OTP codes) are **printed to the server console** |
+| `SMTP_PORT` | | `465` | `465` = implicit TLS (Gmail), `587` = STARTTLS |
+| `SMTP_USER` / `SMTP_PASS` | | — | SMTP login. For Gmail use a **16-character App Password** (requires 2-Step Verification), never your normal password |
+| `SMTP_FROM` | | — | Sender, e.g. `StockSense <you@gmail.com>` |
+
+### 📧 Transactional emails
+
+All emails use one branded, responsive, table-based HTML layout with inline CSS, so they render in Gmail, Outlook and Apple Mail. Each also has a plain-text version. Templates live in `server/src/lib/emailTemplates.js`.
+
+| Trigger | Email | Sent to |
+| :--- | :--- | :--- |
+| Sign up | 🎉 Welcome (login ID, role, dashboard link) | New user |
+| Successful login | 🔔 New sign-in alert (time, IP, device, "reset password" link) | User |
+| Forgot password | 🔢 6-digit OTP in digit boxes (10-min expiry, 5 attempts) | User |
+| OTP reset completed | ✅ Password reset successful | User |
+| Password changed from profile | 🔐 Password changed | User |
+| Profile name/email changed | ✏️ Profile updated (old → new) | User (**both** old and new address if the email changed) |
+| Admin changes role / activates / deactivates | 🛡️ Access updated / account deactivated / reactivated | Affected user |
+
+Notification emails are sent in the background, so they never slow the API. The OTP email is awaited before the response is sent. Demo addresses (`*.local`, `*.test`, `*.example`) are printed to the console instead of being sent. The SMTP connection is verified at startup (`✉  SMTP ready` in the server log).
 
 ### `client/.env`
 
@@ -759,7 +776,8 @@ Seeded topology:
 | `database "stocksense_dev" does not exist` | `psql -U postgres -c "CREATE DATABASE stocksense_dev;"` |
 | Prisma client errors after pulling | `npm install` (runs `prisma generate`) then `npm run db:migrate` |
 | Port 5000 / 5173 already in use | Stop the other process, or change `PORT` / the Vite port |
-| No OTP email received | Without `SMTP_HOST`, the OTP is printed in the **server terminal** |
+| No OTP email received | Without `SMTP_HOST`, or for demo `@stocksense.local` accounts, the OTP is printed in the **server terminal**. With Gmail, check Spam and make sure you use an App Password |
+| `SMTP login failed (EAUTH)` at startup | Wrong Gmail App Password, or 2-Step Verification is not enabled on the account |
 | Always redirected to `/login` | Cookie expired (8h) or user deactivated; log in again |
 | Blank page on first load | Vite is pre-bundling dependencies; wait a few seconds and refresh |
 

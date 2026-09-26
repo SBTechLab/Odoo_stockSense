@@ -2,10 +2,11 @@ import { env } from './config/env.js';
 import { app } from './app.js';
 import { prisma } from './lib/prisma.js';
 import { startBackgroundJobs } from './jobs/index.js';
+import { verifyMailer } from './lib/mailer.js';
 
 const server = app.listen(env.PORT, () => {
   console.log(`🚀 StockSense API listening on http://localhost:${env.PORT} (${env.NODE_ENV})`);
-  if (!env.smtpEnabled) console.log('✉  SMTP not configured — OTP emails will be printed to this console.');
+  verifyMailer();
 });
 
 const stopJobs = startBackgroundJobs();

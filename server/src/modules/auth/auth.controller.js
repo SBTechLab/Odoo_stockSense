@@ -4,6 +4,9 @@ import * as service from './auth.service.js';
 
 const setSession = (res, user) => res.cookie(AUTH_COOKIE, signToken(user), authCookieOptions);
 
+/** Request metadata used in security emails. */
+const ctx = (req) => ({ ip: req.ip, userAgent: req.get('user-agent') });
+
 export async function register(req, res) {
   const user = await service.register(req.valid.body);
   setSession(res, user);
@@ -11,7 +14,7 @@ export async function register(req, res) {
 }
 
 export async function login(req, res) {
-  const user = await service.login(req.valid.body);
+  const user = await service.login(req.valid.body, ctx(req));
   setSession(res, user);
   ok(res, { user });
 }
@@ -27,11 +30,11 @@ export async function me(req, res) {
 }
 
 export async function updateMe(req, res) {
-  ok(res, { user: await service.updateMe(req.user.id, req.valid.body) });
+  ok(res, { user: await service.updateMe(req.user.id, req.valid.body, ctx(req)) });
 }
 
 export async function changePassword(req, res) {
-  await service.changePassword(req.user.id, req.valid.body);
+  await service.changePassword(req.user.id, req.valid.body, ctx(req));
   ok(res, { message: 'Password updated' });
 }
 
@@ -45,6 +48,6 @@ export async function verifyOtp(req, res) {
 }
 
 export async function resetPassword(req, res) {
-  await service.resetPassword(req.valid.body);
+  await service.resetPassword(req.valid.body, ctx(req));
   ok(res, { message: 'Password reset. You can now log in.' });
 }

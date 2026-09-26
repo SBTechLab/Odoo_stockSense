@@ -100,6 +100,7 @@ export function ProfilePage() {
       await updatePasswordApi({
         currentPassword: data.currentPassword,
         newPassword: data.newPassword,
+        confirmPassword: data.confirmPassword,
       });
       resetPwdForm();
       toast.success('Password changed successfully');

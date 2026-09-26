@@ -32,6 +32,7 @@ export async function verifyOtpApi(email, otp) {
   return apiClient.post('/auth/verify-otp', { email, otp });
 }
 
-export async function resetPasswordApi(resetToken, newPassword) {
-  return apiClient.post('/auth/reset-password', { resetToken, newPassword });
+/** Server expects { resetToken, password, confirmPassword } (see auth.schema.js resetPasswordBody). */
+export async function resetPasswordApi(resetToken, password, confirmPassword = password) {
+  return apiClient.post('/auth/reset-password', { resetToken, password, confirmPassword });
 }

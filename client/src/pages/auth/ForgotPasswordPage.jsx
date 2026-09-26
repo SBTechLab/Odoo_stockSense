@@ -180,7 +180,7 @@ export function ForgotPasswordPage() {
     setServerError('');
     setLoading(true);
     try {
-      await resetPasswordApi(resetToken, data.password);
+      await resetPasswordApi(resetToken, data.password, data.confirmPassword);
       toast.success('Password updated successfully! Please log in.');
       navigate(ROUTES.LOGIN);
     } catch (err) {

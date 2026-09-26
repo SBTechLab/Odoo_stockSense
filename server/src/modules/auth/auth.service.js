@@ -4,7 +4,15 @@ import jwt from 'jsonwebtoken';
 import { prisma } from '../../lib/prisma.js';
 import { env } from '../../config/env.js';
 import { logActivity } from '../../lib/activity.js';
-import { sendMail } from '../../lib/mailer.js';
+import { queueMail, sendMail } from '../../lib/mailer.js';
+import {
+  loginAlertEmail,
+  otpEmail,
+  passwordChangedEmail,
+  passwordResetSuccessEmail,
+  profileUpdatedEmail,
+  welcomeEmail,
+} from '../../lib/emailTemplates.js';
 import { ConflictError, UnauthorizedError, ValidationError } from '../../lib/errors.js';
 import { publicUserSelect } from '../../middleware/auth.js';
 
@@ -44,11 +52,12 @@ export async function register({ name, loginId, email, password }) {
     select: publicUserSelect,
   });
   await logActivity(prisma, { userId: user.id, action: 'user.register', entityType: 'User', entityId: user.id });
+  queueMail(user.email, welcomeEmail(user));
   return user;
 }
 
 /** Log in with a Login ID or email. Generic error message on any failure. */
-export async function login({ loginId, password }) {
+export async function login({ loginId, password }, { ip, userAgent } = {}) {
   const identifier = loginId.trim();
   const user = await prisma.user.findFirst({
     where: identifier.includes('@')
@@ -66,6 +75,7 @@ export async function login({ loginId, password }) {
     select: publicUserSelect,
   });
   await logActivity(prisma, { userId: user.id, action: 'user.login', entityType: 'User', entityId: user.id });
+  queueMail(updated.email, loginAlertEmail({ name: updated.name, loginId: updated.loginId, ip, userAgent }));
   return updated;
 }
 
@@ -73,14 +83,25 @@ export async function getMe(userId) {
   return prisma.user.findUnique({ where: { id: userId }, select: publicUserSelect });
 }
 
-export async function updateMe(userId, { name, email }) {
+export async function updateMe(userId, { name, email }, _ctx = {}) {
   if (email) await assertUnique({ email }, userId);
+  const before = await prisma.user.findUnique({ where: { id: userId }, select: { name: true, email: true } });
   const user = await prisma.user.update({ where: { id: userId }, data: { name, email }, select: publicUserSelect });
   await logActivity(prisma, { userId, action: 'user.update_profile', entityType: 'User', entityId: userId, metadata: { name, email } });
+
+  const changes = [];
+  if (name !== undefined && name !== before.name) changes.push({ field: 'Name', from: before.name, to: name });
+  if (email !== undefined && email !== before.email) changes.push({ field: 'Email', from: before.email, to: email });
+  if (changes.length) {
+    queueMail(user.email, profileUpdatedEmail({ name: user.name, loginId: user.loginId, changes }));
+    if (user.email !== before.email) {
+      queueMail(before.email, profileUpdatedEmail({ name: user.name, loginId: user.loginId, changes, toOldAddress: true }));
+    }
+  }
   return user;
 }
 
-export async function changePassword(userId, { currentPassword, newPassword }) {
+export async function changePassword(userId, { currentPassword, newPassword }, { ip } = {}) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   const valid = user && (await bcrypt.compare(currentPassword, user.passwordHash));
   if (!valid) {
@@ -91,6 +112,7 @@ export async function changePassword(userId, { currentPassword, newPassword }) {
   }
   await prisma.user.update({ where: { id: userId }, data: { passwordHash: await bcrypt.hash(newPassword, BCRYPT_ROUNDS) } });
   await logActivity(prisma, { userId, action: 'user.change_password', entityType: 'User', entityId: userId });
+  queueMail(user.email, passwordChangedEmail({ name: user.name, loginId: user.loginId, ip }));
 }
 
 /**
@@ -111,8 +133,7 @@ export async function forgotPassword({ email }) {
 
   await sendMail({
     to: user.email,
-    subject: 'Your StockSense password reset code',
-    text: `Hi ${user.name},\n\nYour password reset code is: ${otp}\nIt expires in 10 minutes. If you did not request this, ignore this email.`,
+    ...otpEmail({ name: user.name, otp, minutes: OTP_TTL_MS / 60000, maxAttempts: OTP_MAX_ATTEMPTS }),
   });
   await logActivity(prisma, { userId: user.id, action: 'user.forgot_password', entityType: 'User', entityId: user.id });
 }
@@ -145,7 +166,7 @@ export async function verifyOtp({ email, otp }) {
 }
 
 /** Set a new password with a reset token from verifyOtp. Consumes the OTP. */
-export async function resetPassword({ resetToken, password }) {
+export async function resetPassword({ resetToken, password }, { ip } = {}) {
   let payload;
   try {
     payload = jwt.verify(resetToken, env.JWT_SECRET);
@@ -164,4 +185,6 @@ export async function resetPassword({ resetToken, password }) {
     prisma.passwordResetOtp.update({ where: { id: record.id }, data: { usedAt: new Date() } }),
   ]);
   await logActivity(prisma, { userId: payload.sub, action: 'user.reset_password', entityType: 'User', entityId: payload.sub });
+  const resetUser = await prisma.user.findUnique({ where: { id: payload.sub }, select: { name: true, loginId: true, email: true } });
+  if (resetUser) queueMail(resetUser.email, passwordResetSuccessEmail({ ...resetUser, ip }));
 }
