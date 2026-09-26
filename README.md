@@ -16,6 +16,8 @@ Replace manual registers and Excel sheets with one centralized, real-time, audit
 ![License](https://img.shields.io/badge/license-Hackathon-teal)
 
 [Features](#-features) •
+[Voice-to-Action](#-voice-to-action) •
+[Warehouse Map](#-warehouse-map) •
 [Architecture](#-architecture) •
 [Tech Stack](#-technology-stack) •
 [Getting Started](#-getting-started) •
@@ -32,24 +34,27 @@ Replace manual registers and Excel sheets with one centralized, real-time, audit
 2. [Problem & Solution](#-problem--solution)
 3. [Features](#-features)
 4. [Additional (Smart) Features](#-additional-smart-features)
-5. [Technology Stack](#-technology-stack)
-6. [Architecture](#-architecture)
-7. [Stock Engine (How Inventory Is Counted)](#-stock-engine-how-inventory-is-counted)
-8. [Operation Lifecycles](#-operation-lifecycles)
-9. [Data Model](#-data-model)
-10. [Roles & Permissions](#-roles--permissions)
-11. [API Overview](#-api-overview)
-12. [Project Structure](#-project-structure)
-13. [Getting Started](#-getting-started)
-14. [Environment Variables](#-environment-variables)
-15. [Scripts](#-scripts)
-16. [Demo Credentials & Walkthrough](#-demo-credentials--walkthrough)
-17. [Design System](#-design-system)
-18. [Security](#-security)
-19. [Troubleshooting](#-troubleshooting)
-20. [Roadmap](#-roadmap)
-21. [Team & Ownership](#-team--ownership)
-22. [Documentation](#-documentation)
+5. [Voice-to-Action (English · हिन्दी · ગુજરાતી)](#-voice-to-action)
+6. [Warehouse Map](#-warehouse-map)
+7. [Email Notifications & OTP](#-email-notifications--otp)
+8. [Technology Stack](#-technology-stack)
+9. [Architecture](#-architecture)
+10. [Stock Engine (How Inventory Is Counted)](#-stock-engine-how-inventory-is-counted)
+11. [Operation Lifecycles](#-operation-lifecycles)
+12. [Data Model](#-data-model)
+13. [Roles & Permissions](#-roles--permissions)
+14. [API Overview](#-api-overview)
+15. [Project Structure](#-project-structure)
+16. [Getting Started](#-getting-started)
+17. [Environment Variables](#-environment-variables)
+18. [Scripts](#-scripts)
+19. [Demo Credentials & Walkthrough](#-demo-credentials--walkthrough)
+20. [Design System](#-design-system)
+21. [Security](#-security)
+22. [Troubleshooting](#-troubleshooting)
+23. [Roadmap](#-roadmap)
+24. [Team & Ownership](#-team--ownership)
+25. [Documentation](#-documentation)
 
 ---
 
@@ -145,6 +150,97 @@ References are auto-generated **per warehouse and per operation type**, formatte
 | 15 | **Reservation logic** | *Free to Use = On Hand − stock reserved by READY deliveries and transfers* | P0 |
 | 16 | **🎙️ Voice-to-Action** | Say or type *"Receive 500 kg steel rods from Tata Steel in warehouse 1"* in **English, Hindi or Gujarati**. StockSense fills the Receipt/Delivery/Transfer form and shows a summary with **Confirm** (creates a draft) or **Edit** | P1 |
 | 17 | **🗺️ Warehouse Map** | Visual floor plan of racks/rooms with capacity use (green / amber / red) and a click-to-open product drawer | P1 |
+| 18 | **📧 Branded email notifications** | Gmail/SMTP emails for sign-up, login alerts, OTP reset, password/profile changes and admin role changes | P1 |
+
+---
+
+## 🎙 Voice-to-Action
+
+Speak or type a command in **English, Hindi or Gujarati**, and StockSense fills the operation form for you. It appears at the top of **New Receipt / New Delivery / New Transfer**.
+
+> 🗣️ *"Receive 500 kg steel rods from Tata Steel in Warehouse 1"*
+> 🗣️ *"टाटा स्टील से 500 किलो स्टील रॉड मंगाओ"*
+> 🗣️ *"ટાટા સ્ટીલ પાસેથી ૫૦૦ કિલો સ્ટીલ રોડ મંગાવો"*
+
+**I've understood this as:**
+**Receive 500 kg Steel Rods 12mm from Tata Steel Industrial Supply → Main Warehouse (WH)**
+🟢 **Confirm Receipt** ✏️ **Edit** ↺ **Try again**
+
+| Field | Filled automatically from the command |
+| :--- | :--- |
+| Operation | Receipt / Delivery / Internal Transfer (from words like *receive, मंगाओ, મંગાવો, deliver, भेजो, મોકલો, transfer, ખસેડો*) |
+| Product | Fuzzy match on name or SKU, with **"Did you mean…"** alternatives |
+| Quantity | Digits, decimals, Hindi/Gujarati digits (५००, ૫૦૦), number words (*five hundred, पांच सौ, પાંચ સો*) |
+| Unit | kg, g, m, L, box, pack, units (*किलो, કિલો, डिब्बे…*); **g ↔ kg converted automatically**; mismatches flagged |
+| Supplier / Customer | Matched against vendors (receipts) or customers (deliveries) |
+| Warehouse | *"warehouse 2"*, *"WH2"*, *"second warehouse"*, *"गोदाम 1"*, or the default |
+| From / To | Racks and floors for transfers (*"from Rack A to Production Floor"*, *"रैक ए से प्रोडक्शन फ्लोर में"*) |
+
+```mermaid
+flowchart LR
+    MIC["🎤 Browser speech<br/>(Web Speech API)<br/>en-IN · hi-IN · gu-IN"] --> TXT["Transcript<br/>(editable / typed)"]
+    TXT -->|POST /api/voice/parse| P1["Transliterate<br/>देवनागरी / ગુજરાતી → Latin"]
+    P1 --> P2["Phonetic keys<br/>steel ≈ stiil ≈ स्टील"]
+    P2 --> P3["Detect intent · quantity · unit<br/>warehouse · locations"]
+    P3 --> P4["Joint product + contact<br/>fuzzy match vs. live DB"]
+    P4 --> CARD["Summary card<br/>(in the chosen language)"]
+    CARD -->|Confirm| OP["POST /api/operations<br/>→ DRAFT created & opened"]
+    CARD -->|Edit| FORM["Form filled for review<br/>(or opens the right form type)"]
+```
+
+- **Offline and private:** the parser is rule-based and runs on your own server. No AI service or API key is needed.
+- **Safe:** parsing never writes. **Confirm** only creates a *Draft*, which still goes through To Do → Validate.
+- **Microphone:** works in Chrome, Edge and Safari; Chrome's speech engine needs internet. **Typing always works**, including in Firefox and offline.
+- **Scope in v1:** one product per command; receipts, deliveries and transfers.
+
+---
+
+## 🗺 Warehouse Map
+
+**Overview → Warehouse Map** shows each warehouse as a floor plan. Every rack, room or floor is a tile showing how full it is.
+
+```text
+                 MAIN WAREHOUSE · WH
+ ┌──────────────────┬──────────────────┬──────────────────┬──────────────────┐
+ │ 🟢 Production     │ 🔴 Rack A         │ 🟢 Rack B         │ 🟡 Stock ⭐        │
+ │ 54%  Healthy     │ 95%  Almost full │ 0%   Healthy     │ 88%  Filling up  │
+ │ 27 / 50 units    │ 57 / 60 units    │ 0 / 200 units    │ 439 / 500 units  │
+ └──────────────────┴──────────────────┴──────────────────┴──────────────────┘
+```
+
+| Colour | Meaning |
+| :--- | :--- |
+| 🟢 Green | Healthy (< 70 %) |
+| 🟡 Amber | Filling up (70–89 %) |
+| 🔴 Red | Almost full (≥ 90 %) |
+| ⚪ Grey, dashed | No capacity set |
+
+- **Summary cards:** overall utilization, number of locations, locations needing attention, and stock value.
+- **Click a tile** to open a drawer with every product stored there (on hand, reserved, free to use), each linking to its product page.
+- **Capacity:** Admins and Managers set it in the drawer or in **Settings → Locations**. It's stored in `Location.capacity`, added by migration `add_location_capacity`.
+- **Live:** tiles refresh automatically when stock moves (SSE).
+- Utilization = on-hand quantity ÷ capacity. All units are summed together, so capacity is a practical guide rather than an exact volume.
+
+---
+
+## 📧 Email Notifications & OTP
+
+All emails use one branded, responsive template (table-based HTML with inline CSS), so they render in Gmail, Outlook and Apple Mail. Each also has a plain-text version.
+
+| Trigger | Email |
+| :--- | :--- |
+| Sign up | 🎉 Welcome: login ID, role, dashboard button |
+| Every login | 🔔 New sign-in alert: time (IST), IP, device, "Reset password" button |
+| Forgot password | 🔢 6-digit OTP in digit boxes: 10-minute expiry, 5 attempts |
+| Reset completed | ✅ Password reset successful |
+| Password changed (profile) | 🔐 Password changed notice |
+| Name / email changed | ✏️ Profile updated (old → new); sent to **both** addresses when the email changes |
+| Admin changes role / status | 🛡️ Access updated / account deactivated / reactivated |
+
+- **Gmail:** set `SMTP_HOST=smtp.gmail.com`, `SMTP_PORT=465`, your address, and a 16-character **App Password**. The connection is checked at startup (`✉  SMTP ready`).
+- **No SMTP / offline:** every email, including the OTP, is printed in the server terminal.
+- **Demo accounts** (`@stocksense.local`) always print to the console instead of bouncing.
+- **Fast:** notification emails are sent in the background and never slow the API. The OTP email is sent before the response returns.
 
 ---
 
@@ -164,6 +260,7 @@ References are auto-generated **per warehouse and per operation type**, formatte
 | **sonner** | Toast notifications |
 | **clsx** | Conditional class names |
 | **papaparse** | CSV parsing for bulk import |
+| **Web Speech API** (built into the browser) | Voice input for Voice-to-Action; no extra library |
 | **@fontsource-variable/inter**, **@fontsource/jetbrains-mono** | Self-hosted fonts (Inter for UI, JetBrains Mono for SKUs, references and numbers) |
 
 ### Backend
@@ -204,10 +301,12 @@ flowchart LR
         HOOKS["Hooks<br/>useFetch · useSSE · useQueryParams"]
         AX["Axios client<br/>baseURL /api"]
         ES["EventSource<br/>/api/events"]
+        MIC["🎤 Web Speech API"]
         UI --> CTX
         UI --> HOOKS
         HOOKS --> AX
         HOOKS --> ES
+        MIC --> UI
     end
 
     subgraph Vite["⚡ Vite dev server :5173"]
@@ -218,15 +317,17 @@ flowchart LR
         MW["helmet · cors · cookie-parser<br/>rate-limit · morgan"]
         AUTH["requireAuth (JWT cookie)<br/>requireRole (RBAC)"]
         VAL["validate (zod) → req.valid"]
-        ROUTES["Module routers<br/>auth · operations · products · ..."]
+        ROUTES["Module routers<br/>auth · operations · products · voice · ..."]
         CTRL["Controllers"]
         SVC["Services (business logic)"]
         CORE["Shared services<br/>stock.service · sequence.service"]
+        NLP["Voice parser<br/>(offline, en / hi / gu)"]
         BUS["eventBus (EventEmitter)"]
         SSE["SSE endpoint"]
         JOBS["Background jobs<br/>low-stock · late ops"]
         ERR["errorHandler<br/>→ JSON envelope"]
         MW --> AUTH --> VAL --> ROUTES --> CTRL --> SVC --> CORE
+        SVC --> NLP
         SVC -- "emit after commit" --> BUS
         BUS --> SSE
         BUS --> JOBS
@@ -237,7 +338,7 @@ flowchart LR
         PRISMA[("Prisma ORM<br/>StockQuant · StockMove<br/>Operation · ...")]
     end
 
-    MAIL["✉️ SMTP (optional)<br/>or console"]
+    MAIL["✉️ Gmail / SMTP<br/>(or console fallback)"]
 
     AX -- "HTTPS + httpOnly cookie" --> PROXY --> MW
     ES -- "text/event-stream" --> PROXY
@@ -457,7 +558,7 @@ erDiagram
 | `User` | Accounts | `loginId` (unique), `email` (unique), `role`, `isActive`, `lastLoginAt` |
 | `PasswordResetOtp` | OTP reset | bcrypt `otpHash`, `expiresAt` (10 min), `attempts` (max 5), `usedAt` |
 | `Warehouse` | Site | `shortCode` (unique, uppercase), `defaultLocationId` |
-| `Location` | Room/rack/floor or virtual | `type` (INTERNAL/VENDOR/CUSTOMER/ADJUSTMENT), unique `(warehouseId, shortCode)` |
+| `Location` | Room/rack/floor or virtual | `type` (INTERNAL/VENDOR/CUSTOMER/ADJUSTMENT), unique `(warehouseId, shortCode)`, optional `capacity` (Warehouse Map) |
 | `Category` | Product grouping | `name` (unique) |
 | `Product` | Catalog item | `sku` (unique), `uom`, `costPrice`, `salePrice`, `barcode` |
 | `ReorderRule` | Replenishment | `minQty`, `maxQty`, `preferredVendorId`, unique `(productId, warehouseId)` |
@@ -500,8 +601,8 @@ Base URL: `/api`. All routes except auth and health require the `token` cookie. 
 | **Health** | `GET /health` |
 | **Auth** | `POST /auth/register` · `POST /auth/login` · `POST /auth/logout` · `GET /auth/me` · `PATCH /auth/me` · `PATCH /auth/me/password` · `POST /auth/forgot-password` · `POST /auth/verify-otp` · `POST /auth/reset-password` |
 | **Users** (admin) | `GET /users` · `PATCH /users/:id` |
-| **Warehouses** | `GET /warehouses` · `POST /warehouses` · `GET /warehouses/:id` · `PATCH /warehouses/:id` · `DELETE /warehouses/:id` |
-| **Locations** | `GET /locations?warehouseId&type` · `POST /locations` · `PATCH /locations/:id` · `DELETE /locations/:id` |
+| **Warehouses** | `GET /warehouses` · `POST /warehouses` · `GET /warehouses/:id` · `GET /warehouses/:id/map` (utilization per location) · `PATCH /warehouses/:id` · `DELETE /warehouses/:id` |
+| **Locations** | `GET /locations?warehouseId&type` · `POST /locations` · `GET /locations/:id` · `GET /locations/:id/stock` (products in a location) · `PATCH /locations/:id` (incl. `capacity`) · `DELETE /locations/:id` |
 | **Contacts** | `GET /contacts?type&search&page` · `POST` · `GET /:id` · `PATCH /:id` · `DELETE /:id` |
 | **Operations** | `GET /operations?type&status&warehouseId&locationId&contactId&search&late&dateFrom&dateTo&page&limit&sort` · `GET /operations/board?type` · `POST` · `GET /:id` · `PATCH /:id` · `DELETE /:id` · `POST /:id/confirm` · `POST /:id/check-availability` · `POST /:id/validate` · `POST /:id/cancel` |
 | **Adjustments** | `GET /adjustments` · `GET /adjustments/:id` · `GET /adjustments/on-hand` · `POST /adjustments` |
@@ -529,7 +630,7 @@ Odoo_stockSense/
 ├── server/
 │   ├── prisma/
 │   │   ├── schema.prisma     # complete data model
-│   │   ├── migrations/       # never edit old migrations — add new ones
+│   │   ├── migrations/       # init + add_location_capacity (never edit old ones — add new)
 │   │   ├── seed.js           # idempotent: users, virtual locations, warehouses
 │   │   └── seed-demo.js      # rich demo data: categories, products, contacts, history
 │   ├── prisma.config.js      # Prisma 7 config (datasource url, seed command)
@@ -538,25 +639,28 @@ Odoo_stockSense/
 │       ├── app.js            # middleware chain, /api/health, routes, errors
 │       ├── routes.js         # mounts every module under /api
 │       ├── config/env.js     # zod-validated env (fail fast)
-│       ├── lib/              # prisma, errors, eventBus, activity, pagination, serialize, mailer
+│       ├── lib/              # prisma, errors, eventBus, activity, pagination, serialize,
+│       │                     # mailer (pooled SMTP) + emailTemplates (branded HTML emails)
 │       ├── middleware/       # auth, rbac, validate, errorHandler, notFound, rateLimit
 │       ├── services/         # stock.service.js, sequence.service.js
 │       ├── jobs/             # low-stock & late-operation scanners
 │       └── modules/<name>/   # <name>.routes / .controller / .service / .schema
+│           └── voice/        # + voice.text.js (transliteration, phonetic match) & voice.lexicon.js (en/hi/gu)
 └── client/
     ├── vite.config.js        # React + Tailwind plugins, /api proxy → :5000
     └── src/
         ├── main.jsx · App.jsx · router.jsx · index.css (@theme tokens)
         ├── api/              # axios client + one file per module
         ├── context/          # AuthContext, ThemeContext
-        ├── hooks/            # useFetch, useDebounce, useSSE, useQueryParams
+        ├── hooks/            # useFetch, useDebounce, useSSE, useQueryParams, useSpeechRecognition
         ├── components/
         │   ├── ui/           # 30+ accessible components (see ui/README.md)
         │   ├── layout/       # AppLayout, Sidebar, Topbar, AuthLayout
         │   ├── operations/   # OperationListPage, OperationForm, LinesEditor
+        │   ├── voice/        # VoiceCommand panel + voiceI18n (English / हिन्दी / ગુજરાતી)
         │   ├── notifications/ · search/
-        ├── pages/            # auth, dashboard, operations, products, stock, moves,
-        │                     # replenishment, contacts, settings, profile
+        ├── pages/            # auth, dashboard, operations, products, stock, moves, replenishment,
+        │                     # warehouse-map, contacts, settings, profile
         ├── constants/        # status, roles, routes
         └── utils/format.js   # en-IN numbers, ₹ currency, dates
 ```
@@ -567,7 +671,8 @@ Odoo_stockSense/
 | :--- | :--- | :--- |
 | `/login`, `/signup`, `/forgot-password`, `/reset-password` | Auth | Public |
 | `/dashboard` | KPIs, operation cards, trends | All |
-| `/operations/receipts[/new\|/:id]` | Receipts | All |
+| `/warehouse-map` | Visual rack/room utilization map | All (capacity edit: Admin/Manager) |
+| `/operations/receipts[/new\|/:id]` | Receipts (Voice-to-Action on *new*) | All |
 | `/operations/deliveries[/new\|/:id]` | Deliveries | All |
 | `/operations/transfers[/new\|/:id]` | Internal transfers | All |
 | `/operations/adjustments[/new\|/:id]` | Adjustments | All |
@@ -628,6 +733,8 @@ npm run db:seed        # users, virtual locations, warehouses (idempotent)
 npm run seed:demo      # optional: 25 products, 8 contacts, 6 categories, stock history, pending & late ops
 ```
 
+> **Pulled new changes?** Run `npm install && npm run db:migrate` so new migrations (e.g. `add_location_capacity`) are applied, and `npm run db:seed` for demo rack capacities.
+
 ### 5. Run
 
 ```bash
@@ -660,21 +767,7 @@ npm run dev
 | `SMTP_USER` / `SMTP_PASS` | | — | SMTP login. For Gmail use a **16-character App Password** (requires 2-Step Verification), never your normal password |
 | `SMTP_FROM` | | — | Sender, e.g. `StockSense <you@gmail.com>` |
 
-### 📧 Transactional emails
-
-All emails use one branded, responsive, table-based HTML layout with inline CSS, so they render in Gmail, Outlook and Apple Mail. Each also has a plain-text version. Templates live in `server/src/lib/emailTemplates.js`.
-
-| Trigger | Email | Sent to |
-| :--- | :--- | :--- |
-| Sign up | 🎉 Welcome (login ID, role, dashboard link) | New user |
-| Successful login | 🔔 New sign-in alert (time, IP, device, "reset password" link) | User |
-| Forgot password | 🔢 6-digit OTP in digit boxes (10-min expiry, 5 attempts) | User |
-| OTP reset completed | ✅ Password reset successful | User |
-| Password changed from profile | 🔐 Password changed | User |
-| Profile name/email changed | ✏️ Profile updated (old → new) | User (**both** old and new address if the email changed) |
-| Admin changes role / activates / deactivates | 🛡️ Access updated / account deactivated / reactivated | Affected user |
-
-Notification emails are sent in the background, so they never slow the API. The OTP email is awaited before the response is sent. Demo addresses (`*.local`, `*.test`, `*.example`) are printed to the console instead of being sent. The SMTP connection is verified at startup (`✉  SMTP ready` in the server log).
+See [Email Notifications & OTP](#-email-notifications--otp) for what is sent and when.
 
 ### `client/.env`
 
@@ -726,6 +819,9 @@ Seeded topology:
 7. Open a second browser as `staff001`: changes appear **live** (SSE). Staff sees no *Cancel* button, and the API returns **403** if tried.
 8. **Forgot password**: the 6-digit OTP prints in the server console, then set a new password.
 9. Press **Ctrl+K** to search a SKU, and toggle **dark mode**.
+10. **Receipts → New → 🎙️ Voice-to-Action**: switch to **हिन्दी** and say *"टाटा स्टील से 500 किलो स्टील रॉड मंगाओ"* (or click an example). Check the summary, then **Confirm Receipt**.
+11. **Warehouse Map**: Rack A shows **red (95%)**. Click it to see its products, then raise its capacity as a Manager and watch the tile turn green.
+12. **Sign up with a real email address** to receive the welcome email and login alert. Use **Forgot password** to get the branded OTP email.
 
 ---
 
@@ -766,7 +862,9 @@ Seeded topology:
 | Input | Zod validation on body, query and params; 1 MB JSON limit |
 | Headers & abuse | `helmet`, strict CORS origin, rate limits on auth, OTP and the whole API |
 | Data integrity | Transactions, atomic conditional decrements, unique constraints, immutable ledger, soft deletes for master data |
-| Secrets | `.env` is git-ignored; `.env.example` holds placeholders only |
+| Account alerts | Email on every login, password change/reset, profile change (old **and** new address) and admin role/status change |
+| Voice commands | Parse-only endpoint (never writes); creating an operation still goes through the normal RBAC-checked API as a *Draft* |
+| Secrets | `.env` is git-ignored; `.env.example` holds placeholders only (never commit SMTP app passwords or JWT secrets) |
 
 ---
 
@@ -783,6 +881,12 @@ Seeded topology:
 | `SMTP login failed (EAUTH)` at startup | Wrong Gmail App Password, or 2-Step Verification is not enabled on the account |
 | Always redirected to `/login` | Cookie expired (8h) or user deactivated; log in again |
 | Blank page on first load | Vite is pre-bundling dependencies; wait a few seconds and refresh |
+| 🎤 Speak button missing | The browser has no Web Speech API (e.g. Firefox). Use Chrome or Edge, or type the command |
+| "Microphone permission was denied" | Allow the microphone in the address bar (site settings), then try again |
+| Voice: "network" error | Chrome's speech engine needs internet. Type the command instead (parsing works offline) |
+| Voice picked the wrong product | Click a **Did you mean** alternative, or say more of the name or the SKU |
+| Warehouse Map tiles are grey | No capacity is set. Set it in the tile drawer or in **Settings → Locations** |
+| `column "capacity" does not exist` | Run `npm run db:migrate` after pulling |
 
 ---
 
@@ -798,6 +902,9 @@ Seeded topology:
 | ⏳ | Camera-based barcode scanning on mobile (PWA) |
 | ⏳ | Automated tests (unit tests for `stock.service`, API integration, Playwright E2E) and CI |
 | ⏳ | Docker Compose for one-command setup |
+| ⏳ | Voice-to-Action: several products per command, adjustments by voice, more Indian languages (Marathi, Tamil…) |
+| ⏳ | Warehouse Map: drag-and-drop layout editor and per-UoM / volume-based capacity |
+| ✅ | ~~Email notifications & OTP via SMTP~~ (done) · ~~Warehouse Map~~ (done) · ~~Voice-to-Action~~ (done) |
 
 ---
 
