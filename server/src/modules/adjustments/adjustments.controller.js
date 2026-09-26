@@ -1,5 +1,6 @@
 import { ok } from '../../lib/serialize.js';
 import * as service from './adjustments.service.js';
+import * as stockService from '../../services/stock.service.js';
 
 export async function list(req, res) {
   const { items, meta } = await service.list(req.valid.query);
@@ -8,6 +9,12 @@ export async function list(req, res) {
 
 export async function get(req, res) {
   ok(res, await service.getById(req.valid.params.id));
+}
+
+export async function getOnHand(req, res) {
+  const { locationId, productId } = req.valid.query;
+  const onHand = await stockService.getOnHand(productId, { locationId });
+  ok(res, { onHand });
 }
 
 export async function create(req, res) {

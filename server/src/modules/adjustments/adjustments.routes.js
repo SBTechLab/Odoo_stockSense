@@ -9,6 +9,7 @@ export const adjustmentsRouter = Router();
 
 adjustmentsRouter.use(requireAuth);
 
+adjustmentsRouter.get('/on-hand', validate({ query: s.getOnHandQuery }), c.getOnHand);
 adjustmentsRouter.get('/', validate({ query: s.listAdjustmentsQuery }), c.list);
 adjustmentsRouter.get('/:id', validate({ params: s.idParams }), c.get);
 adjustmentsRouter.post('/', requireRole(...CAN.OPERATE), validate({ body: s.createAdjustmentBody }), c.create);

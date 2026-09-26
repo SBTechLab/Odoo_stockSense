@@ -4,6 +4,11 @@ export const idParams = z.object({
   id: z.string().uuid('Invalid adjustment ID'),
 });
 
+export const getOnHandQuery = z.object({
+  locationId: z.string().uuid('Invalid location ID'),
+  productId: z.string().uuid('Invalid product ID'),
+});
+
 export const adjustmentLineInput = z.object({
   productId: z.string().uuid('Invalid product ID'),
   countedQuantity: z.coerce.number().min(0, 'Counted quantity cannot be negative'),
