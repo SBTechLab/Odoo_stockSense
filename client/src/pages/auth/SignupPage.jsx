@@ -103,7 +103,6 @@ export function SignupPage() {
         <FormField label="Full Name" error={errors.name?.message} required>
           <Input
             {...register('name')}
-            placeholder="e.g. Smit Bhalani"
             icon={<User className="w-4 h-4" />}
             autoFocus
           />
@@ -117,7 +116,6 @@ export function SignupPage() {
         >
           <Input
             {...register('loginId')}
-            placeholder="e.g. smit01"
             icon={<UserCheck className="w-4 h-4" />}
           />
         </FormField>
@@ -126,7 +124,6 @@ export function SignupPage() {
           <Input
             {...register('email')}
             type="email"
-            placeholder="name@company.com"
             icon={<Mail className="w-4 h-4" />}
           />
         </FormField>
@@ -139,7 +136,6 @@ export function SignupPage() {
           <Input
             {...register('password')}
             type={showPassword ? 'text' : 'password'}
-            placeholder="••••••••"
             icon={<Lock className="w-4 h-4" />}
             iconRight={
               <button
@@ -189,7 +185,6 @@ export function SignupPage() {
           <Input
             {...register('confirmPassword')}
             type={showConfirmPassword ? 'text' : 'password'}
-            placeholder="••••••••"
             icon={<Lock className="w-4 h-4" />}
             iconRight={
               <button
