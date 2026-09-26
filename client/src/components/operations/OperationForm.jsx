@@ -60,11 +60,15 @@ const ROUTE_MAP = {
   INTERNAL: '/operations/transfers',
 };
 
+// Optional id fields: '' means "not selected". Hidden fields (e.g. source location on a
+// receipt) stay '' and must not fail validation; the server fills in virtual locations.
+const optionalId = z.union([z.string().uuid(), z.literal('')]).optional().nullable();
+
 const formSchema = z.object({
   warehouseId: z.string().uuid('Please select a warehouse'),
-  contactId: z.string().uuid().optional().nullable(),
-  sourceLocationId: z.string().uuid().optional().nullable(),
-  destLocationId: z.string().uuid().optional().nullable(),
+  contactId: optionalId,
+  sourceLocationId: optionalId,
+  destLocationId: optionalId,
   scheduledDate: z.string().optional(),
   deliveryAddress: z.string().max(500).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
@@ -82,9 +86,10 @@ export function OperationForm({ type, operationId, baseRoute }) {
   const [linesErrors, setLinesErrors] = useState([]);
   const [actionLoading, setActionLoading] = useState(null);
   const [confirmAction, setConfirmAction] = useState(null);
+  const [linesDirty, setLinesDirty] = useState(false);
 
   const { data: warehouses = [] } = useFetch(listWarehousesApi, []);
-  const { data: products = [] } = useFetch(listProductsApi, []);
+  const { data: products = [] } = useFetch(() => listProductsApi({ limit: 100 }), []);
 
   const {
     register,
@@ -117,10 +122,12 @@ export function OperationForm({ type, operationId, baseRoute }) {
     [selectedWarehouseId]
   );
 
-  const { data: vendorContacts = [] } = useFetch(
-    () => listContactsApi({ type: type === 'RECEIPT' ? 'VENDOR' : type === 'DELIVERY' ? 'CUSTOMER' : undefined }),
-    [type]
-  );
+  // Fetch all contacts and filter client-side so BOTH-type contacts appear for receipts and deliveries.
+  const { data: allContacts = [] } = useFetch(() => listContactsApi({ limit: 100 }), []);
+  const vendorContacts = useMemo(() => {
+    const wanted = type === 'RECEIPT' ? 'VENDOR' : type === 'DELIVERY' ? 'CUSTOMER' : null;
+    return wanted ? allContacts.filter((c) => c.type === wanted || c.type === 'BOTH') : allContacts;
+  }, [allContacts, type]);
 
   const contactOptions = useMemo(
     () => vendorContacts.map((c) => ({ value: c.id, label: c.name, description: c.email || c.phone || '' })),
@@ -131,9 +138,9 @@ export function OperationForm({ type, operationId, baseRoute }) {
   useEffect(() => {
     if (type === 'DELIVERY' && selectedContactId && isNew) {
       const contact = vendorContacts.find((c) => c.id === selectedContactId);
-      if (contact?.address) setValue('deliveryAddress', contact.address);
+      if (contact?.address && !watch('deliveryAddress')) setValue('deliveryAddress', contact.address);
     }
-  }, [selectedContactId, vendorContacts, type, isNew, setValue]);
+  }, [selectedContactId, vendorContacts, type, isNew, setValue, watch]);
 
   // Set defaults on new form
   useEffect(() => {
@@ -142,57 +149,64 @@ export function OperationForm({ type, operationId, baseRoute }) {
     }
   }, [warehouses, isNew, selectedWarehouseId, setValue]);
 
+  // Default locations for the selected warehouse; re-pick when the warehouse changes
+  // so a location from another warehouse is never submitted.
   useEffect(() => {
-    if (isNew && internalLocations.length > 0) {
-      const src = watch('sourceLocationId');
-      const dest = watch('destLocationId');
-      if (type === 'DELIVERY' && !src) setValue('sourceLocationId', internalLocations[0].id);
-      if (type === 'INTERNAL') {
-        if (!src) setValue('sourceLocationId', internalLocations[0].id);
-        if (!dest && internalLocations.length > 1) setValue('destLocationId', internalLocations[1].id);
-      }
-      if (type === 'RECEIPT' && !dest) setValue('destLocationId', internalLocations[0].id);
+    if (!isNew || internalLocations.length === 0) return;
+    const ids = new Set(internalLocations.map((l) => l.id));
+    const wh = warehouses.find((w) => w.id === selectedWarehouseId);
+    const defaultId = wh?.defaultLocationId && ids.has(wh.defaultLocationId) ? wh.defaultLocationId : internalLocations[0].id;
+    const src = watch('sourceLocationId');
+    const dest = watch('destLocationId');
+    if ((type === 'DELIVERY' || type === 'INTERNAL') && !ids.has(src)) setValue('sourceLocationId', defaultId);
+    if (type === 'RECEIPT' && !ids.has(dest)) setValue('destLocationId', defaultId);
+    if (type === 'INTERNAL' && !ids.has(dest)) {
+      const other = internalLocations.find((l) => l.id !== (ids.has(src) ? src : defaultId));
+      setValue('destLocationId', other?.id || '');
     }
-  }, [internalLocations, isNew, type, setValue, watch]);
+  }, [internalLocations, warehouses, selectedWarehouseId, isNew, type, setValue, watch]);
 
   // Load existing operation
   useEffect(() => {
     if (operationId) {
       setLoadingOp(true);
       getOperationApi(operationId)
-        .then((res) => {
-          const op = res.data;
-          setOperation(op);
-          const linesWithAvail = (op.lines || []).map((l) => ({
-            ...l,
-            quantity: Number(l.quantity),
-            availability: l.availability || null,
-          }));
-          setLines(linesWithAvail);
-          reset({
-            warehouseId: op.warehouseId || '',
-            contactId: op.contactId || '',
-            sourceLocationId: op.sourceLocationId || '',
-            destLocationId: op.destLocationId || '',
-            scheduledDate: op.scheduledDate ? op.scheduledDate.split('T')[0] : new Date().toISOString().split('T')[0],
-            deliveryAddress: op.deliveryAddress || '',
-            notes: op.notes || '',
-          });
-        })
+        .then((res) => applyOperation(res.data))
         .catch((err) => toast.error(err.message || 'Failed to load operation'))
         .finally(() => setLoadingOp(false));
     }
+    // Load only when the id changes; applyOperation is recreated every render.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [operationId, reset]);
 
   useSSE('operation.changed', (evt) => {
     if (operationId && evt.id === operationId) {
-      getOperationApi(operationId).then((res) => {
-        const op = res.data;
-        setOperation(op);
-        setLines((op.lines || []).map((l) => ({ ...l, quantity: Number(l.quantity), availability: l.availability || null })));
-      });
+      // Keep unsaved edits made in this tab.
+      if (isDirty || linesDirty) return;
+      getOperationApi(operationId).then((res) => applyOperation(res.data)).catch(() => {});
     }
   });
+
+  /** Put a server operation into local state and reset the form's dirty tracking. */
+  const applyOperation = (op) => {
+    setOperation(op);
+    setLines((op.lines || []).map((l) => ({ ...l, quantity: Number(l.quantity), availability: l.availability || null })));
+    setLinesDirty(false);
+    reset({
+      warehouseId: op.warehouseId || '',
+      contactId: op.contactId || '',
+      sourceLocationId: op.sourceLocationId || '',
+      destLocationId: op.destLocationId || '',
+      scheduledDate: op.scheduledDate ? String(op.scheduledDate).split('T')[0] : new Date().toISOString().split('T')[0],
+      deliveryAddress: op.deliveryAddress || '',
+      notes: op.notes || '',
+    });
+  };
+
+  const handleLinesChange = (next) => {
+    setLines(next);
+    setLinesDirty(true);
+  };
 
   const validateLines = () => {
     const errs = lines.map((l) => {
@@ -209,6 +223,11 @@ export function OperationForm({ type, operationId, baseRoute }) {
   const onSave = async (formData) => {
     if (lines.length === 0) { toast.error('Add at least one product line'); return; }
     if (!validateLines()) { toast.error('Fix line errors before saving'); return; }
+    if (type === 'INTERNAL') {
+      if (!formData.sourceLocationId || !formData.destLocationId) { toast.error('Select source and destination locations'); return; }
+      if (formData.sourceLocationId === formData.destLocationId) { toast.error('Source and destination must be different'); return; }
+    }
+    if (type === 'DELIVERY' && !formData.sourceLocationId) { toast.error('Select a source location'); return; }
 
     const payload = {
       type,
@@ -230,7 +249,9 @@ export function OperationForm({ type, operationId, baseRoute }) {
         navigate(`${baseRoute}/${res.data.id}`);
       } else {
         const res = await updateOperationApi(operationId, payload);
-        setOperation(res.data);
+        // Reload so line availability (shortages) is recomputed by the server.
+        const fresh = await getOperationApi(operationId).catch(() => null);
+        applyOperation(fresh?.data || res.data);
         toast.success('Saved');
       }
     } catch (err) {
@@ -238,6 +259,12 @@ export function OperationForm({ type, operationId, baseRoute }) {
     } finally {
       setActionLoading(null);
     }
+  };
+
+  // Surface form validation errors (some fields may be hidden for this operation type).
+  const onInvalid = (formErrors) => {
+    const first = Object.values(formErrors)[0];
+    toast.error(first?.message || 'Please fix the highlighted fields');
   };
 
   const runAction = async (action) => {
@@ -249,23 +276,22 @@ export function OperationForm({ type, operationId, baseRoute }) {
       else if (action === 'validate') res = await validateOperationApi(operationId);
       else if (action === 'cancel') res = await cancelOperationApi(operationId);
 
-      const op = res.data?.operation || res.data;
-      setOperation(op);
-      const updatedLines = (op.lines || []).map((l) => ({ ...l, quantity: Number(l.quantity), availability: l.availability || null }));
-      setLines(updatedLines);
+      // Reload the full operation so lines carry fresh availability info.
+      const fresh = await getOperationApi(operationId).catch(() => null);
+      const op = fresh?.data || res.data?.operation || res.data;
+      applyOperation(op);
 
-      const labels = { confirm: 'Confirmed', check: 'Availability checked', validate: 'Validated', cancel: 'Canceled' };
-      toast.success(labels[action] || 'Done');
-    } catch (err) {
-      if (err.code === 'INSUFFICIENT_STOCK') {
-        toast.error('Insufficient stock — operation moved to Waiting');
-        // Reload to get updated status
-        const res = await getOperationApi(operationId);
-        setOperation(res.data);
-        setLines((res.data.lines || []).map((l) => ({ ...l, quantity: Number(l.quantity), availability: l.availability || null })));
+      if ((action === 'confirm' || action === 'check') && op?.status === 'WAITING') {
+        toast.warning('Not enough stock — operation is waiting for stock');
       } else {
-        toast.error(err.message || 'Action failed');
+        const labels = { confirm: 'Marked as To Do', check: 'Stock available — operation is Ready', validate: 'Validated — stock updated', cancel: 'Canceled' };
+        toast.success(labels[action] || 'Done');
       }
+    } catch (err) {
+      toast.error(err.message || (err.code === 'INSUFFICIENT_STOCK' ? 'Insufficient stock' : 'Action failed'));
+      // Reload to reflect any status change made by the server (e.g. moved to Waiting).
+      const res = await getOperationApi(operationId).catch(() => null);
+      if (res?.data) applyOperation(res.data);
     } finally {
       setActionLoading(null);
       setConfirmAction(null);
@@ -300,12 +326,12 @@ export function OperationForm({ type, operationId, baseRoute }) {
 
           {/* Action buttons driven by status */}
           {isNew && (
-            <Button type="button" variant="primary" size="sm" loading={actionLoading === 'save'} onClick={handleSubmit(onSave)}>
+            <Button type="button" variant="primary" size="sm" loading={actionLoading === 'save'} onClick={handleSubmit(onSave, onInvalid)}>
               Create {TYPE_LABELS[type]}
             </Button>
           )}
           {!isNew && isEditable && (
-            <Button type="button" variant="secondary" size="sm" loading={actionLoading === 'save'} onClick={handleSubmit(onSave)} disabled={!isDirty && lines.length > 0}>
+            <Button type="button" variant="secondary" size="sm" loading={actionLoading === 'save'} onClick={handleSubmit(onSave, onInvalid)} disabled={!isDirty && !linesDirty}>
               Save Changes
             </Button>
           )}
@@ -356,7 +382,7 @@ export function OperationForm({ type, operationId, baseRoute }) {
       )}
 
       {/* Form */}
-      <form onSubmit={handleSubmit(onSave)} className="space-y-5">
+      <form onSubmit={handleSubmit(onSave, onInvalid)} className="space-y-5">
         {/* Header fields */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 p-5 bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-xl shadow-2xs">
           {/* Warehouse */}
@@ -374,7 +400,7 @@ export function OperationForm({ type, operationId, baseRoute }) {
               <Combobox
                 options={contactOptions}
                 value={watch('contactId') || ''}
-                onChange={(val) => setValue('contactId', val)}
+                onChange={(val) => setValue('contactId', val || '', { shouldDirty: true })}
                 placeholder={`Search ${type === 'RECEIPT' ? 'vendor' : 'customer'}...`}
                 disabled={!isEditable}
               />
@@ -437,7 +463,7 @@ export function OperationForm({ type, operationId, baseRoute }) {
           <LinesEditor
             lines={lines}
             products={products}
-            onChange={setLines}
+            onChange={handleLinesChange}
             readOnly={!isEditable}
             showAvailability={showAvailability}
             errors={linesErrors}
