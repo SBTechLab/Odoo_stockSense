@@ -11,6 +11,6 @@ contactsRouter.use(requireAuth);
 
 contactsRouter.get('/', validate({ query: s.listContactsQuery }), c.list);
 contactsRouter.get('/:id', validate({ params: s.idParams }), c.get);
-contactsRouter.post('/', validate({ body: s.createContactBody }), c.create);
-contactsRouter.patch('/:id', validate({ params: s.idParams, body: s.updateContactBody }), c.update);
+contactsRouter.post('/', requireRole(...CAN.OPERATE), validate({ body: s.createContactBody }), c.create);
+contactsRouter.patch('/:id', requireRole(...CAN.OPERATE), validate({ params: s.idParams, body: s.updateContactBody }), c.update);
 contactsRouter.delete('/:id', requireRole(...CAN.DELETE), validate({ params: s.idParams }), c.remove);

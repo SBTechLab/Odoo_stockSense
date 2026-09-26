@@ -2,8 +2,8 @@ import { ok } from '../../lib/serialize.js';
 import * as service from './contacts.service.js';
 
 export async function list(req, res) {
-  const { items, meta } = await service.list(req.valid.query);
-  ok(res, items, { meta });
+  const result = await service.list(req.valid.query);
+  ok(res, result.data, { meta: result.meta });
 }
 
 export async function get(req, res) {
@@ -19,5 +19,6 @@ export async function update(req, res) {
 }
 
 export async function remove(req, res) {
-  ok(res, await service.remove(req.user.id, req.valid.params.id));
+  await service.remove(req.user.id, req.valid.params.id);
+  ok(res, { id: req.valid.params.id });
 }

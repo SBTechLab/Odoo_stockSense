@@ -1,147 +1,70 @@
 import { prisma } from '../../lib/prisma.js';
-import { NotFoundError } from '../../lib/errors.js';
 import { logActivity } from '../../lib/activity.js';
+import { NotFoundError } from '../../lib/errors.js';
+import { parsePagination, buildMeta } from '../../lib/pagination.js';
 
-export async function list({ type, search, includeInactive, page = 1, limit = 50 }) {
-  const where = {};
+export async function list(query) {
+  const { type, search } = query;
+  const { skip, take, orderBy, page, limit } = parsePagination(query, {
+    allowedSort: ['name', 'createdAt'],
+    defaultSort: 'name',
+  });
 
-  if (!includeInactive) {
-    where.isActive = true;
-  }
+  const where = {
+    isActive: true,
+    ...(type ? { type } : {}),
+    ...(search
+      ? {
+          OR: [
+            { name: { contains: search, mode: 'insensitive' } },
+            { email: { contains: search, mode: 'insensitive' } },
+            { phone: { contains: search, mode: 'insensitive' } },
+            { gstin: { contains: search, mode: 'insensitive' } },
+          ],
+        }
+      : {}),
+  };
 
-  if (type) {
-    if (type === 'VENDOR') {
-      where.type = { in: ['VENDOR', 'BOTH'] };
-    } else if (type === 'CUSTOMER') {
-      where.type = { in: ['CUSTOMER', 'BOTH'] };
-    } else {
-      where.type = type;
-    }
-  }
-
-  if (search) {
-    where.OR = [
-      { name: { contains: search, mode: 'insensitive' } },
-      { email: { contains: search, mode: 'insensitive' } },
-      { phone: { contains: search, mode: 'insensitive' } },
-      { gstin: { contains: search, mode: 'insensitive' } },
-    ];
-  }
-
-  const [total, items] = await Promise.all([
-    prisma.contact.count({ where }),
+  const [data, total] = await Promise.all([
     prisma.contact.findMany({
       where,
-      orderBy: { name: 'asc' },
-      skip: (page - 1) * limit,
-      take: limit,
-      include: {
-        _count: {
-          select: { operations: true },
-        },
-      },
+      skip,
+      take,
+      orderBy,
+      include: { _count: { select: { operations: true } } },
     }),
+    prisma.contact.count({ where }),
   ]);
 
-  return {
-    items,
-    meta: {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit) || 1,
-    },
-  };
+  return { data, meta: buildMeta({ page, limit }, total) };
 }
 
 export async function getById(id) {
   const contact = await prisma.contact.findUnique({
     where: { id },
-    include: {
-      _count: {
-        select: { operations: true, reorderRules: true },
-      },
-    },
+    include: { _count: { select: { operations: true } } },
   });
-
-  if (!contact) {
-    throw new NotFoundError('Contact not found');
-  }
-
+  if (!contact || !contact.isActive) throw new NotFoundError('Contact not found');
   return contact;
 }
 
-export async function create(userId, data) {
-  const contact = await prisma.contact.create({
-    data: {
-      name: data.name,
-      type: data.type,
-      email: data.email,
-      phone: data.phone,
-      address: data.address,
-      gstin: data.gstin,
-      isActive: true,
-    },
-  });
-
-  await logActivity(prisma, {
-    userId,
-    action: 'contact.create',
-    entityType: 'Contact',
-    entityId: contact.id,
-    metadata: { name: contact.name, type: contact.type },
-  });
-
+export async function create(userId, body) {
+  const contact = await prisma.contact.create({ data: body });
+  await logActivity(prisma, { userId, action: 'contact.create', entityType: 'Contact', entityId: contact.id, metadata: { name: contact.name } });
   return contact;
 }
 
-export async function update(userId, id, data) {
+export async function update(userId, id, body) {
   const existing = await prisma.contact.findUnique({ where: { id } });
-  if (!existing) {
-    throw new NotFoundError('Contact not found');
-  }
-
-  const contact = await prisma.contact.update({
-    where: { id },
-    data,
-  });
-
-  await logActivity(prisma, {
-    userId,
-    action: 'contact.update',
-    entityType: 'Contact',
-    entityId: contact.id,
-    metadata: data,
-  });
-
+  if (!existing || !existing.isActive) throw new NotFoundError('Contact not found');
+  const contact = await prisma.contact.update({ where: { id }, data: body });
+  await logActivity(prisma, { userId, action: 'contact.update', entityType: 'Contact', entityId: id, metadata: body });
   return contact;
 }
 
 export async function remove(userId, id) {
-  const existing = await prisma.contact.findUnique({
-    where: { id },
-    include: {
-      _count: { select: { operations: true } },
-    },
-  });
-
-  if (!existing) {
-    throw new NotFoundError('Contact not found');
-  }
-
-  // Soft delete
-  const contact = await prisma.contact.update({
-    where: { id },
-    data: { isActive: false },
-  });
-
-  await logActivity(prisma, {
-    userId,
-    action: 'contact.delete',
-    entityType: 'Contact',
-    entityId: contact.id,
-    metadata: { name: contact.name, previousStatus: existing.isActive },
-  });
-
-  return { id: contact.id, isActive: false };
+  const existing = await prisma.contact.findUnique({ where: { id } });
+  if (!existing || !existing.isActive) throw new NotFoundError('Contact not found');
+  await prisma.contact.update({ where: { id }, data: { isActive: false } });
+  await logActivity(prisma, { userId, action: 'contact.delete', entityType: 'Contact', entityId: id, metadata: { name: existing.name } });
 }

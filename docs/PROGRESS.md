@@ -130,7 +130,117 @@ All components are in `client/src/components/ui/` (see `client/src/components/ui
 ---
 
 ## Member 2 — Operations, Contacts & Movements
-*(To be completed by Member 2)*
+> **Status:** Completed & Fully Verified  
+> **Lead:** Member 2 (Senior Full-Stack Engineer)
+
+### 1. Summary of Delivered Work
+Member 2 has delivered the complete core logistics, inventory movement engine, contacts directory, and state-machine-driven operational workflows across both backend and frontend.
+
+- **Contacts Module:**
+  - Full CRUD with Zod validation (`createContactBody`, `updateContactBody`, `listContactsQuery`).
+  - Validation rules: Name (2–100 chars), Type (`VENDOR`, `CUSTOMER`, `BOTH`), email format, 10-digit Indian mobile number (`^[6-9]\d{9}$`), and 15-character Indian GSTIN (`^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$`).
+  - Case-insensitive search across name, email, phone, and GSTIN.
+  - Soft-delete pattern (`isActive: false`) restricted to `MANAGER` and `ADMIN` (`CAN.DELETE`).
+  - Full UI at `/contacts` with tab filters (All / Vendors / Customers), search, create/edit modal, and quick "+ New Contact" modal directly inside operation documents.
+
+- **Operations Engine & State Machines:**
+  - Shared, high-performance service for `RECEIPT`, `DELIVERY`, and `INTERNAL` operations (`server/src/modules/operations/`).
+  - State machine guarantees:
+    - **RECEIPT:** `DRAFT` $\xrightarrow{\text{confirm ("To Do")}}$ `READY` $\xrightarrow{\text{validate}}$ `DONE`. Virtual `VENDOR` source to warehouse internal destination.
+    - **DELIVERY:** `DRAFT` $\xrightarrow{\text{confirm}}$ `READY` (if full stock available) or `WAITING` (if short). `WAITING` $\xrightarrow{\text{check-availability}}$ `READY` when inventory is received. `READY` $\xrightarrow{\text{validate}}$ `DONE`. Internal warehouse source to virtual `CUSTOMER` destination.
+    - **INTERNAL:** Same availability logic as Delivery. Source and destination must be physical internal locations and cannot be identical.
+  - Idempotent Validation & Double-Claim Safeguard: Inside `prisma.$transaction`, validation begins with atomic conditional claim: `UPDATE "Operation" SET status='DONE' WHERE id=$id AND status='READY'`. If 0 rows are affected, throws `InvalidStateError` (409 Conflict), preventing concurrency race conditions.
+  - Auto-Sequencing: Concurrency-safe reference generation (`nextReference`) assigning numbers like `WH/IN/0001`, `WH/OUT/0001`, `WH/INT/0001`.
+  - Cancellation: Restricted to `MANAGER` and `ADMIN` (`CAN.CANCEL_OPERATION`). Unreserves any allocated stock.
+  - Deletion: Restricted strictly to `DRAFT` documents.
+  - Real-Time Events: Emits `operation.changed` and `stock.changed` on `eventBus` strictly after transaction commit.
+
+- **Inventory Adjustments Module:**
+  - `POST /api/adjustments`: Automatically calculates theoretical system balance vs. counted quantity per line.
+  - Zero-difference lines are omitted; if all lines match, returns `ValidationError('No difference to adjust')`.
+  - Automatic double-entry movements: Positive delta moves virtual `ADJUSTMENT` $\rightarrow$ internal location; negative delta moves internal location $\rightarrow$ virtual `ADJUSTMENT`.
+  - Real-time stock lookup endpoint `GET /api/adjustments/on-hand?locationId=...&productId=...` to display current system balance.
+
+- **Frontend Operational UI Suite:**
+  - `OperationListPage`: Unified view for Receipts, Deliveries, and Transfers supporting both tabular List view and visual Kanban board grouped by status.
+  - URL Query Sync: All filters (`search`, `status`, `warehouseId`, `late`, `view`, `page`) are bidirectional synced to URL search parameters for deep-linking.
+  - `OperationForm`: Universal form equipped with status-driven action buttons (To Do, Check Availability, Validate, Print, Cancel), `StatusPipeline` stepper, and large mono reference heading.
+  - `LinesEditor`: Dynamic line items table with product search combobox, UoM badges, and red warning alerts with per-line shortage indicators.
+  - `PrintSlipPage`: Clean, professional A4-optimized printable slip at `/operations/:id/print` with company header, partner info, line items, and authorized signature blocks. Restricts printing to `DONE` operations.
+  - Live SSE telemetry: All list and form views automatically reload when receiving `operation.changed` events without manual page refresh.
+
+---
+
+### 2. Verification Results
+
+| Test Case | Scenario / Execution | Expected Result | Actual Result | Status |
+| :--- | :--- | :--- | :--- | :--- |
+| **1. Goods Receipt Flow** | Create receipt `WH/IN/0001` for 100 kg Steel $\rightarrow$ Confirm $\rightarrow$ Validate | Stock moves from VENDOR $\rightarrow$ WH/Stock (+100); status DONE | On-hand becomes 100 kg; ledger written | **PASS** |
+| **2. Internal Transfer** | Move 100 kg Steel from `WH/Stock` $\rightarrow$ `WH/Production Floor` | Total warehouse inventory unchanged; locations updated | Stock quant updated at source & dest | **PASS** |
+| **3. Delivery Order** | Deliver 20 kg from Production Floor $\rightarrow$ Confirm $\rightarrow$ Validate | Stock moves from Production Floor $\rightarrow$ CUSTOMER (-20) | On-hand decrements to 80 kg; status DONE | **PASS** |
+| **4. Cycle Count Adjustment** | Physical count at Production Floor: counted 77 (theoretical 80) | Negative delta (-3) moves stock to ADJUSTMENT; on-hand becomes 77 | On-hand becomes 77 kg; total diff -3 | **PASS** |
+| **5. Availability & Shortage** | Delivery for 150 kg (when 77 available) $\rightarrow$ Confirm | Operation moves to WAITING; lines display red shortage badge | Status WAITING; shortBy: 73 kg flagged | **PASS** |
+| **6. Double-Validation Race** | Attempting to validate the same operation twice concurrently | First attempt succeeds; second attempt returns 409 INVALID_STATE | 409 InvalidStateError; stock not double-counted | **PASS** |
+| **7. Security & Non-Negativity** | Staff attempting to cancel; operations going negative | Staff cannot cancel (403); stock decrement blocked | RBAC blocks staff; stock integrity preserved | **PASS** |
+| **8. UI Build & Responsive Design** | Vite production build; dark mode; mobile 375px & desktop 1440px | Build succeeds without warnings; 36px/40px touch rules active | Vite build 534ms; 0 lint errors | **PASS** |
+
+---
+
+### 3. Explicit Notes for Member 3 (Catalog, Stock, Dashboard & Smart Features)
+
+Welcome, Member 3! The operational backbone is live and ready for your Catalog, Stock Ledger, Replenishment, and Dashboard views.
+
+#### A. Adjustments & Operations API Usage
+- **Stock Adjustment Trigger (from your Stock Page):**
+  - When a user clicks "Adjust Stock" on your `/stock` view, submit:
+    ```http
+    POST /api/adjustments
+    Content-Type: application/json
+
+    {
+      "locationId": "uuid-of-internal-location",
+      "reason": "COUNT_CORRECTION",
+      "notes": "Quick adjustment from stock page",
+      "lines": [
+        { "productId": "uuid-of-product", "countedQuantity": 42.5 }
+      ]
+    }
+    ```
+  - It returns the created `Operation` with status `DONE` and updates `StockQuant` and `StockMove` automatically.
+- **Replenishment Purchase Order Generation:**
+  - When your auto-replenishment service determines that reorder minimums are reached, trigger a new draft receipt:
+    ```http
+    POST /api/operations
+    Content-Type: application/json
+
+    {
+      "type": "RECEIPT",
+      "warehouseId": "uuid-of-warehouse",
+      "contactId": "uuid-of-preferred-vendor",
+      "lines": [
+        { "productId": "uuid", "quantity": 100 }
+      ]
+    }
+    ```
+
+#### B. Stable Stock Service Signatures (`services/stock.service.js`)
+You can freely import and call these methods in your routes and services:
+- `getOnHand(productId, { locationId?, warehouseId? }, tx?)`: Real-time physical quantity across internal locations.
+- `getReserved(productId, locationId, tx?, opts?)`: Total stock reserved by pending `READY` delivery/transfers.
+- `getFreeToUse(productId, locationId, tx?, opts?)`: $\max(0, \text{OnHand} - \text{Reserved})$.
+- `applyMoves(tx, { moves, reference, type, operationId?, userId? })`: Low-level atomic ledger movement execution.
+
+#### C. Real-Time Event Subscriptions
+Your dashboard, notifications, and stock views can subscribe to these events using `useSSE`:
+- `stock.changed`: `{ productIds: string[], locationIds: string[] }` $\rightarrow$ Re-fetch stock balances or summary counters.
+- `operation.changed`: `{ id: string, type: string, status: string }` $\rightarrow$ Update operational KPI badges and activity charts.
+
+#### D. Deep-Linking URL Parameters
+Your dashboard KPI cards can link directly into the operational list pages with pre-filtered states:
+- `/operations/receipts?status=READY` (Ready to receive)
+- `/operations/deliveries?status=WAITING` (Orders waiting for stock)
+- `/operations/deliveries?late=true` (Overdue shipments)
+- `/operations/transfers?warehouseId=<id>&view=kanban`
 
 ---
 
