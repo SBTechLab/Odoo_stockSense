@@ -32,37 +32,42 @@ Tokens are defined in `client/src/index.css` leveraging Tailwind CSS v4's native
   - Dark mode (`.dark` class): Background `zinc-950` (`#09090B`), Surface `zinc-900` (`#18181B`), Borders `zinc-800` (`#27272A`), Text `zinc-100` (`#F4F4F5`), Muted `zinc-400` (`#A1A1AA`).
 
 ### 2.2 Semantic Status Colors
+Soft pill style with dot indicator and subtle 1px ring overlay (never loud solid blocks):
 | Status | Semantic Intent | Light Theme Token | Dark Theme Token |
 | :--- | :--- | :--- | :--- |
-| **DRAFT** | In preparation / not committed | `bg-zinc-100 text-zinc-700 border-zinc-300` | `bg-zinc-800 text-zinc-300 border-zinc-700` |
-| **WAITING** | Waiting for stock availability | `bg-amber-50 text-amber-700 border-amber-300` | `bg-amber-950/60 text-amber-300 border-amber-800` |
-| **READY** | Stock reserved / ready to execute | `bg-sky-50 text-sky-700 border-sky-300` | `bg-sky-950/60 text-sky-300 border-sky-800` |
-| **DONE** | Transaction posted / stock updated | `bg-emerald-50 text-emerald-700 border-emerald-300` | `bg-emerald-950/60 text-emerald-300 border-emerald-800` |
-| **CANCELED** | Terminated / voided | `bg-rose-50 text-rose-700 border-rose-300` | `bg-rose-950/60 text-rose-300 border-rose-800` |
+| **DRAFT** | In preparation / not committed | `bg-zinc-100 text-zinc-700 ring-1 ring-zinc-300/50` | `bg-zinc-800 text-zinc-300 ring-1 ring-zinc-700/50` |
+| **WAITING** | Waiting for stock availability | `bg-amber-50 text-amber-700 ring-1 ring-amber-600/20` | `bg-amber-950/60 text-amber-300 ring-1 ring-amber-500/20` |
+| **READY** | Stock reserved / ready to execute | `bg-sky-50 text-sky-700 ring-1 ring-sky-600/20` | `bg-sky-950/60 text-sky-300 ring-1 ring-sky-500/20` |
+| **DONE** | Transaction posted / stock updated | `bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20` | `bg-emerald-950/60 text-emerald-300 ring-1 ring-emerald-500/20` |
+| **CANCELED** | Terminated / voided | `bg-rose-50 text-rose-700 ring-1 ring-rose-600/20` | `bg-rose-950/60 text-rose-300 ring-1 ring-rose-500/20` |
 
 ### 2.3 Move Direction Colors
-- **IN (Receipts):** Emerald text & badge (`bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-400`)
-- **OUT (Deliveries):** Rose text & badge (`bg-rose-50 dark:bg-rose-950 text-rose-700 dark:text-rose-400`)
-- **INT (Transfers):** Violet text & badge (`bg-violet-50 dark:bg-violet-950 text-violet-700 dark:text-violet-400`)
-- **ADJ (Adjustments):** Amber text & badge (`bg-amber-50 dark:bg-amber-950 text-amber-700 dark:text-amber-400`)
+- **IN (Receipts):** Emerald text & badge (`bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 ring-1 ring-emerald-600/20`)
+- **OUT (Deliveries):** Rose text & badge (`bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-400 ring-1 ring-rose-600/20`)
+- **INT (Transfers):** Violet text & badge (`bg-violet-50 dark:bg-violet-950/60 text-violet-700 dark:text-violet-400 ring-1 ring-violet-600/20`)
+- **ADJ (Adjustments):** Amber text & badge (`bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 ring-1 ring-amber-600/20`)
 
-### 2.4 Typography & Scale
+### 2.4 Control Heights & Touch Friendliness Rule
+- **Desktop (md breakpoint and up):** Standard control height is **36px** (`md:min-h-[36px] md:h-9`) for inputs, selects, search, buttons, and form controls to maintain high information density. Small buttons (`size="sm"`) are 32px (`h-8`).
+- **Mobile (below md breakpoint):** All interactive controls (buttons, inputs, select triggers, navigation links) must be **at least 40px tall** (`min-h-[40px]`) with minimum 40px $\times$ 40px tap targets to ensure comfortable touch operation without misclicks.
+
+### 2.5 Typography & Scale
 - **UI Font:** `Inter Variable`, sans-serif (clean, high legibility at 12–14px).
-- **Data / Monospace Font:** `JetBrains Mono`, monospace (used for all Document References like `WH/IN/0001`, SKUs, and tabular quantities).
+- **Data / Monospace Font:** `JetBrains Mono`, monospace with `tabular-nums` (used for all Document References like `WH/IN/0001`, SKUs, and numerical counts/quantities).
 - **Type Scale:**
+  - `text-[10px]` / `text-[11px]`: 10–11px (section labels, micro-badges)
   - `text-xs`: 12px / line-height 16px (badges, captions, metadata)
   - `text-sm`: 14px / line-height 20px (body copy, table cells, form labels, controls)
-  - `text-base`: 16px / line-height 24px (section headers, lead paragraphs)
-  - `text-lg`: 18px / line-height 28px (card titles, modal titles)
-  - `text-xl`: 20px / line-height 28px (sub-page titles)
+  - `text-base`: 16px / line-height 24px (section headers, modal titles)
+  - `text-lg`: 18px / line-height 28px (card titles)
   - `text-2xl`: 24px / line-height 32px (page headers)
-  - `text-3xl`: 30px / line-height 36px (KPI values, dashboard metrics)
+  - `text-3xl`: 28–30px semibold (StatCard KPIs, dashboard metrics)
 
-### 2.5 Geometry, Radii & Shadows
+### 2.6 Geometry, Radii & Shadows
 - **Spacing:** Base 4px grid (`p-1` = 4px, `p-2` = 8px, `p-3` = 12px, `p-4` = 16px, `p-6` = 24px).
 - **Control Radius:** `rounded-lg` (8px) for buttons, inputs, selects, badges.
 - **Card Radius:** `rounded-xl` (12px) for cards, tables, modal containers.
-- **Elevation / Shadows:** Clean flat aesthetic with subtle boundary borders (`border border-zinc-200 dark:border-zinc-800`) and soft shadows (`shadow-xs` or `shadow-sm`). High shadows (`shadow-xl`) reserved for floating modals and dropdown menus.
+- **Elevation / Shadows:** Clean flat aesthetic with subtle boundary borders (`border border-zinc-200 dark:border-zinc-800`) and soft shadows (`shadow-2xs` or `shadow-xs`). Shadows (`shadow-lg`) reserved for modals, drawers, and dropdown menus.
 
 ---
 
@@ -167,3 +172,16 @@ Every dynamic view in StockSense **must** support four explicit states:
   - `< 640px (Mobile)`: Sidebar becomes an overlay drawer; data tables scroll horizontally; form columns stack vertically; minimum touch targets 40px $\times$ 40px.
   - `768px - 1024px (Tablet)`: Sidebar collapses to compact rail; secondary table columns hide conditionally.
   - `> 1024px (Desktop)`: Full expanded layout.
+
+---
+
+## 7. Component Showcase (`/dev/ui`)
+
+A dedicated live showcase route is available at `/dev/ui` to verify all components, interactive states, and tokens in both light and dark mode.
+- **Buttons:** Primary, secondary, ghost, danger, loading states, and icon configurations.
+- **Status & Direction Pills:** All document status variants with dot indicators and rings.
+- **Inputs & Combobox:** 36px/40px inputs, search with `/` shortcut, keyboard-navigable combobox.
+- **StatCards:** KPI summaries with tabular numbers and hover elevation.
+- **Data Table:** Dense 44px rows with tabular data, sortable headers, and embedded empty states.
+- **Overlays:** Modal, Drawer, ConfirmDialog, DropdownMenu, and Tooltips with Esc key handling.
+- **Steppers & Toggles:** StatusPipeline, ViewToggle, Tabs, and FilterChips.

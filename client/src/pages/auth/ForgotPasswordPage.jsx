@@ -8,8 +8,9 @@ import { FormField } from '../../components/ui/FormField.jsx';
 import { Input } from '../../components/ui/Input.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { ROUTES } from '../../constants/routes.js';
-import { Mail, Lock, KeyRound, CheckCircle2, ArrowLeft } from 'lucide-react';
+import { Mail, Lock, KeyRound, CheckCircle2, ArrowLeft, Eye, EyeOff, Check } from 'lucide-react';
 import { toast } from 'sonner';
+import clsx from 'clsx';
 
 const SPECIAL_CHAR_REGEX = /[^A-Za-z0-9]/;
 
@@ -39,6 +40,17 @@ export function ForgotPasswordPage() {
   const [resendCooldown, setResendCooldown] = useState(60);
 
   const otpInputRefs = useRef([]);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Auto-focus OTP first box on step 2
+  useEffect(() => {
+    if (step === 2) {
+      setTimeout(() => {
+        otpInputRefs.current[0]?.focus();
+      }, 50);
+    }
+  }, [step]);
 
   // Resend cooldown timer for Step 2
   useEffect(() => {
@@ -72,7 +84,7 @@ export function ForgotPasswordPage() {
     }
   };
 
-  // Step 2: Handle OTP input
+  // Step 2: Handle OTP input & Paste
   const handleOtpChange = (index, value) => {
     if (!/^\d*$/.test(value)) return;
     const newOtp = [...otp];
@@ -83,6 +95,21 @@ export function ForgotPasswordPage() {
     if (value && index < 5) {
       otpInputRefs.current[index + 1]?.focus();
     }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text/plain').replace(/\D/g, '').slice(0, 6);
+    if (!pastedData) return;
+
+    const newOtp = [...otp];
+    for (let i = 0; i < 6; i++) {
+      newOtp[i] = pastedData[i] || '';
+    }
+    setOtp(newOtp);
+
+    const nextIndex = Math.min(pastedData.length, 5);
+    otpInputRefs.current[nextIndex]?.focus();
   };
 
   const handleOtpKeyDown = (index, e) => {
@@ -133,10 +160,21 @@ export function ForgotPasswordPage() {
   const {
     register: registerPwd,
     handleSubmit: handleSubmitPwd,
+    watch: watchPwd,
     formState: { errors: pwdErrors },
   } = useForm({
     resolver: zodResolver(passwordSchema),
+    mode: 'onChange',
   });
+
+  const newPwdValue = watchPwd ? watchPwd('password') || '' : '';
+
+  const passwordChecks = [
+    { label: 'Longer than 8 characters', met: newPwdValue.length > 8 },
+    { label: 'At least one lowercase letter', met: /[a-z]/.test(newPwdValue) },
+    { label: 'At least one uppercase letter', met: /[A-Z]/.test(newPwdValue) },
+    { label: 'At least one special character', met: SPECIAL_CHAR_REGEX.test(newPwdValue) },
+  ];
 
   const handleResetPassword = async (data) => {
     setServerError('');
@@ -197,18 +235,20 @@ export function ForgotPasswordPage() {
       {/* STEP 2: 6-Box OTP Form */}
       {step === 2 && (
         <form onSubmit={handleVerifyOtp} className="space-y-6">
-          <div className="flex justify-center gap-2.5">
+          <div className="flex justify-center gap-2 sm:gap-2.5">
             {otp.map((digit, idx) => (
               <input
                 key={idx}
                 ref={(el) => (otpInputRefs.current[idx] = el)}
                 type="text"
                 inputMode="numeric"
+                pattern="[0-9]*"
                 maxLength={1}
                 value={digit}
                 onChange={(e) => handleOtpChange(idx, e.target.value)}
                 onKeyDown={(e) => handleOtpKeyDown(idx, e)}
-                className="w-11 h-12 text-center text-lg font-mono font-bold rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500 text-zinc-900 dark:text-zinc-100"
+                onPaste={handleOtpPaste}
+                className="w-10 sm:w-11 h-12 text-center text-lg font-mono font-bold rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 focus:outline-none focus:ring-2 focus:ring-teal-500/25 focus:border-teal-500 text-zinc-900 dark:text-zinc-100 shadow-2xs transition-colors"
                 autoFocus={idx === 0}
               />
             ))}
@@ -251,24 +291,74 @@ export function ForgotPasswordPage() {
           <FormField
             label="New Password"
             error={pwdErrors.password?.message}
-            hint="> 8 chars, 1 uppercase, 1 lowercase, 1 special character"
             required
           >
             <Input
               {...registerPwd('password')}
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               placeholder="••••••••"
               icon={<Lock className="w-4 h-4" />}
               autoFocus
+              iconRight={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((prev) => !prev)}
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              }
             />
           </FormField>
+
+          {/* Live 4-Point Requirement Checklist */}
+          <div className="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/60 space-y-2">
+            <p className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">
+              Password Requirements
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+              {passwordChecks.map((chk, i) => (
+                <div
+                  key={i}
+                  className={clsx(
+                    'flex items-center gap-2 transition-colors',
+                    chk.met
+                      ? 'text-emerald-700 dark:text-emerald-400 font-medium'
+                      : 'text-zinc-400 dark:text-zinc-500'
+                  )}
+                >
+                  {chk.met ? (
+                    <span className="w-3.5 h-3.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                      <Check className="w-2.5 h-2.5 stroke-[3]" />
+                    </span>
+                  ) : (
+                    <span className="w-3.5 h-3.5 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 shrink-0">
+                      <span className="w-1 h-1 rounded-full bg-zinc-400 dark:bg-zinc-500" />
+                    </span>
+                  )}
+                  <span className="text-[11px] leading-tight">{chk.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
 
           <FormField label="Confirm New Password" error={pwdErrors.confirmPassword?.message} required>
             <Input
               {...registerPwd('confirmPassword')}
-              type="password"
+              type={showConfirmPassword ? 'text' : 'password'}
               placeholder="••••••••"
               icon={<Lock className="w-4 h-4" />}
+              iconRight={
+                <button
+                  type="button"
+                  onClick={() => setShowConfirmPassword((prev) => !prev)}
+                  aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                  className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                >
+                  {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              }
             />
           </FormField>
 

@@ -5,6 +5,8 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { PageHeader } from '../../components/ui/PageHeader.jsx';
 import { DataTable } from '../../components/ui/DataTable.jsx';
 import { Button } from '../../components/ui/Button.jsx';
+import { EmptyState } from '../../components/ui/EmptyState.jsx';
+import { ErrorState } from '../../components/ui/ErrorState.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { FormField } from '../../components/ui/FormField.jsx';
@@ -27,6 +29,7 @@ export function UsersPage() {
   const {
     data: users = [],
     loading,
+    error,
     refetch,
   } = useFetch(
     () =>
@@ -218,7 +221,30 @@ export function UsersPage() {
         </Select>
       </div>
 
-      <DataTable columns={columns} data={users} loading={loading} />
+      {error ? (
+        <ErrorState
+          title="Failed to load users"
+          message={error.message || 'Could not retrieve user records.'}
+          onRetry={refetch}
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={users}
+          loading={loading}
+          emptyState={
+            <EmptyState
+              icon={<Shield className="w-8 h-8 text-zinc-400" />}
+              title="No users found"
+              description={
+                search || roleFilter
+                  ? 'No users match your search criteria. Try a different query.'
+                  : 'No users registered in the system.'
+              }
+            />
+          }
+        />
+      )}
 
       {/* Edit Role Modal */}
       <Modal

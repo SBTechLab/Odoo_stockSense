@@ -39,10 +39,21 @@ Member 1 has completed the entire core foundation, data persistence layer, authe
   - User Management (`/settings/users`) restricted to `ADMIN` with role assignment and self-demotion/deactivation safeguards. Non-admins receive `403 Forbidden`.
   - Activity Audit Log (`/settings/activity`) with user, entity type, and date filters.
 
-- **Frontend Foundation & UI Kit:**
+- **Frontend Foundation & UI Kit Overhaul:**
+  - Modern, high-density SaaS design system matching Linear/Stripe/Vercel/Odoo 17 aesthetics in `client/src/index.css` via Tailwind v4 `@theme`.
+  - Sizing rule enforced across the entire application: Crisp **36px** on desktop (`md:min-h-[36px] md:h-9`), but touch-friendly **at least 40px** (`min-h-[40px]`) below `md` breakpoint.
+  - Soft pill badges with status dot indicators and 1px rings (`ring-1 ring-emerald-600/20`, etc.).
+  - 256px $\leftrightarrow$ 64px collapsible icon rail with `localStorage` persistence and Tooltip hover labels.
+  - Topbar with input-styled search button (`"Search products, references... Ctrl K"`), theme toggle, notification bell, and user avatar.
+  - Auth layout with rich teal gradient split screen, live feature points, and high-contrast form card.
+  - Live 4-point password security checklist (length > 8, lowercase, uppercase, special character) with real-time checkmarks on Signup and Profile views.
+  - Password visibility toggles (Eye / EyeOff) across Login, Signup, Forgot Password, and Profile pages.
+  - 6-box OTP input with multi-digit clipboard paste handling and auto-focus in Forgot Password flow.
+  - Sonner toast system customized with theme tokens, soft borders, and dark mode support.
+  - Settings views (`Warehouses`, `Locations`, `Users`, `Activity`) equipped with `DataTable` skeleton loaders, rich `EmptyState`, and retryable `ErrorState`.
+  - Friendly `404 Not Found` and `403 Access Denied` error pages with back navigation.
+  - Dedicated Component Showcase route at **`/dev/ui`** displaying every component, variant, and state in both light and dark mode.
   - 20+ accessible, dark-mode ready UI components in `client/src/components/ui/` with exhaustive props documentation in `client/src/components/ui/README.md`.
-  - AppLayout with collapsible sidebar, mobile drawer, topbar with search (Ctrl+K trigger), notification bell, and theme toggle.
-  - Scaffolding and placeholder views for all Member 2 and Member 3 pages.
 
 ---
 

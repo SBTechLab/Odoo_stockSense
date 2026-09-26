@@ -14,6 +14,8 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { PageHeader } from '../../components/ui/PageHeader.jsx';
 import { DataTable } from '../../components/ui/DataTable.jsx';
 import { Button } from '../../components/ui/Button.jsx';
+import { EmptyState } from '../../components/ui/EmptyState.jsx';
+import { ErrorState } from '../../components/ui/ErrorState.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { FormField } from '../../components/ui/FormField.jsx';
@@ -59,6 +61,7 @@ export function LocationsPage() {
   const {
     data: locations = [],
     loading,
+    error,
     refetch,
   } = useFetch(
     () =>
@@ -311,12 +314,38 @@ export function LocationsPage() {
         }}
       />
 
-      <DataTable
-        columns={columns}
-        data={locations}
-        loading={loading}
-        onRowClick={canEdit ? (loc) => loc.warehouseId && handleOpenEdit(loc) : undefined}
-      />
+      {error ? (
+        <ErrorState
+          title="Failed to load locations"
+          message={error.message || 'Could not retrieve location records.'}
+          onRetry={refetch}
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={locations}
+          loading={loading}
+          onRowClick={canEdit ? (loc) => loc.warehouseId && handleOpenEdit(loc) : undefined}
+          emptyState={
+            <EmptyState
+              icon={<MapPin className="w-8 h-8 text-zinc-400" />}
+              title="No locations found"
+              description={
+                search || warehouseFilter || typeFilter
+                  ? 'No locations match your current filters. Try resetting them.'
+                  : 'Get started by creating a storage location.'
+              }
+              action={
+                canEdit && !search && !warehouseFilter && !typeFilter && (
+                  <Button variant="primary" size="sm" onClick={handleOpenCreate} icon={<Plus className="w-4 h-4" />}>
+                    New Location
+                  </Button>
+                )
+              }
+            />
+          }
+        />
+      )}
 
       {/* Create / Edit Modal */}
       <Modal

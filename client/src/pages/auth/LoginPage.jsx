@@ -8,7 +8,7 @@ import { FormField } from '../../components/ui/FormField.jsx';
 import { Input } from '../../components/ui/Input.jsx';
 import { Button } from '../../components/ui/Button.jsx';
 import { ROUTES } from '../../constants/routes.js';
-import { Lock, User } from 'lucide-react';
+import { Lock, User, Eye, EyeOff } from 'lucide-react';
 
 const loginSchema = z.object({
   loginId: z.string().trim().min(1, 'Login ID or Email is required'),
@@ -21,6 +21,7 @@ export function LoginPage() {
   const [searchParams] = useSearchParams();
   const [serverError, setServerError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const {
     register,
@@ -74,9 +75,19 @@ export function LoginPage() {
         <FormField label="Password" error={errors.password?.message} required>
           <Input
             {...register('password')}
-            type="password"
+            type={showPassword ? 'text' : 'password'}
             placeholder="••••••••"
             icon={<Lock className="w-4 h-4" />}
+            iconRight={
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            }
           />
         </FormField>
 

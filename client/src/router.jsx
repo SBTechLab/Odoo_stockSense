@@ -38,6 +38,9 @@ import { StockPage } from './pages/stock/StockPage.jsx';
 import { MovesPage } from './pages/moves/MovesPage.jsx';
 import { ReplenishmentPage } from './pages/replenishment/ReplenishmentPage.jsx';
 
+// Dev Showcase
+import { UiShowcasePage } from './pages/dev/UiShowcasePage.jsx';
+
 // Error Pages
 import { NotFoundPage } from './pages/NotFoundPage.jsx';
 import { ForbiddenPage } from './pages/ForbiddenPage.jsx';
@@ -141,6 +144,16 @@ export function AppRouter() {
         <Route path="/settings/activity" element={<ActivityPage />} />
         <Route path="/profile" element={<ProfilePage />} />
       </Route>
+
+      {/* Component Library Showcase */}
+      <Route
+        path="/dev/ui"
+        element={
+          <div className="min-h-screen bg-zinc-50 dark:bg-zinc-950 p-4 sm:p-8">
+            <UiShowcasePage />
+          </div>
+        }
+      />
 
       {/* 403 & 404 */}
       <Route path="/403" element={<ForbiddenPage />} />

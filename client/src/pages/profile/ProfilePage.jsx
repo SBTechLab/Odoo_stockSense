@@ -13,7 +13,8 @@ import { Badge } from '../../components/ui/Badge.jsx';
 import { ROLE_COLORS, ROLE_LABELS } from '../../constants/roles.js';
 import { formatDateTime } from '../../utils/format.js';
 import { toast } from 'sonner';
-import { User, Mail, Lock, Shield, Clock } from 'lucide-react';
+import { User, Mail, Lock, Shield, Clock, Eye, EyeOff, Check } from 'lucide-react';
+import clsx from 'clsx';
 
 const profileSchema = z.object({
   name: z.string().trim().min(1, 'Name is required').max(100),
@@ -42,6 +43,9 @@ export function ProfilePage() {
   const { user, refreshUser } = useAuth();
   const [profileLoading, setProfileLoading] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [showCurrentPwd, setShowCurrentPwd] = useState(false);
+  const [showNewPwd, setShowNewPwd] = useState(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState(false);
 
   // Profile Form
   const {
@@ -60,11 +64,22 @@ export function ProfilePage() {
   const {
     register: registerPwd,
     handleSubmit: handleSubmitPwd,
+    watch: watchPwd,
     reset: resetPwdForm,
     formState: { errors: pwdErrors },
   } = useForm({
     resolver: zodResolver(passwordSchema),
+    mode: 'onChange',
   });
+
+  const newPwdValue = watchPwd ? watchPwd('newPassword') || '' : '';
+
+  const passwordChecks = [
+    { label: 'Longer than 8 characters', met: newPwdValue.length > 8 },
+    { label: 'At least one lowercase letter', met: /[a-z]/.test(newPwdValue) },
+    { label: 'At least one uppercase letter', met: /[A-Z]/.test(newPwdValue) },
+    { label: 'At least one special character', met: SPECIAL_CHAR_REGEX.test(newPwdValue) },
+  ];
 
   const onUpdateProfile = async (data) => {
     setProfileLoading(true);
@@ -193,25 +208,75 @@ export function ProfilePage() {
                 >
                   <Input
                     {...registerPwd('currentPassword')}
-                    type="password"
+                    type={showCurrentPwd ? 'text' : 'password'}
                     placeholder="••••••••"
                     icon={<Lock className="w-4 h-4" />}
+                    iconRight={
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPwd((prev) => !prev)}
+                        aria-label={showCurrentPwd ? 'Hide password' : 'Show password'}
+                        className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                      >
+                        {showCurrentPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    }
                   />
                 </FormField>
 
                 <FormField
                   label="New Password"
                   error={pwdErrors.newPassword?.message}
-                  hint="> 8 chars, 1 uppercase, 1 lowercase, 1 special character"
                   required
                 >
                   <Input
                     {...registerPwd('newPassword')}
-                    type="password"
+                    type={showNewPwd ? 'text' : 'password'}
                     placeholder="••••••••"
                     icon={<Lock className="w-4 h-4" />}
+                    iconRight={
+                      <button
+                        type="button"
+                        onClick={() => setShowNewPwd((prev) => !prev)}
+                        aria-label={showNewPwd ? 'Hide password' : 'Show password'}
+                        className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                      >
+                        {showNewPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    }
                   />
                 </FormField>
+
+                {/* Live 4-Point Requirement Checklist */}
+                <div className="p-3 rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/60 space-y-2">
+                  <p className="text-[11px] font-semibold text-zinc-600 dark:text-zinc-400 uppercase tracking-wider">
+                    Password Requirements
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-xs">
+                    {passwordChecks.map((chk, i) => (
+                      <div
+                        key={i}
+                        className={clsx(
+                          'flex items-center gap-2 transition-colors',
+                          chk.met
+                            ? 'text-emerald-700 dark:text-emerald-400 font-medium'
+                            : 'text-zinc-400 dark:text-zinc-500'
+                        )}
+                      >
+                        {chk.met ? (
+                          <span className="w-3.5 h-3.5 rounded-full bg-emerald-100 dark:bg-emerald-950/80 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
+                            <Check className="w-2.5 h-2.5 stroke-[3]" />
+                          </span>
+                        ) : (
+                          <span className="w-3.5 h-3.5 rounded-full bg-zinc-200 dark:bg-zinc-800 flex items-center justify-center text-zinc-400 shrink-0">
+                            <span className="w-1 h-1 rounded-full bg-zinc-400 dark:bg-zinc-500" />
+                          </span>
+                        )}
+                        <span className="text-[11px] leading-tight">{chk.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
 
                 <FormField
                   label="Confirm New Password"
@@ -220,9 +285,19 @@ export function ProfilePage() {
                 >
                   <Input
                     {...registerPwd('confirmPassword')}
-                    type="password"
+                    type={showConfirmPwd ? 'text' : 'password'}
                     placeholder="••••••••"
                     icon={<Lock className="w-4 h-4" />}
+                    iconRight={
+                      <button
+                        type="button"
+                        onClick={() => setShowConfirmPwd((prev) => !prev)}
+                        aria-label={showConfirmPwd ? 'Hide password' : 'Show password'}
+                        className="p-1 text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 transition-colors cursor-pointer"
+                      >
+                        {showConfirmPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    }
                   />
                 </FormField>
 

@@ -4,6 +4,8 @@ import { useFetch } from '../../hooks/useFetch.js';
 import { PageHeader } from '../../components/ui/PageHeader.jsx';
 import { DataTable } from '../../components/ui/DataTable.jsx';
 import { Pagination } from '../../components/ui/Pagination.jsx';
+import { EmptyState } from '../../components/ui/EmptyState.jsx';
+import { ErrorState } from '../../components/ui/ErrorState.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { DateInput } from '../../components/ui/DateInput.jsx';
 import { Badge } from '../../components/ui/Badge.jsx';
@@ -21,6 +23,8 @@ export function ActivityPage() {
     data: logs = [],
     meta,
     loading,
+    error,
+    refetch,
   } = useFetch(
     () =>
       listActivityApi({
@@ -155,7 +159,30 @@ export function ActivityPage() {
         </div>
       </div>
 
-      <DataTable columns={columns} data={logs} loading={loading} />
+      {error ? (
+        <ErrorState
+          title="Failed to load activity log"
+          message={error.message || 'Could not retrieve audit log entries.'}
+          onRetry={refetch}
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={logs}
+          loading={loading}
+          emptyState={
+            <EmptyState
+              icon={<ActivityIcon className="w-8 h-8 text-zinc-400" />}
+              title="No activity recorded"
+              description={
+                entityFilter || dateFrom || dateTo
+                  ? 'No activity entries match your filter criteria.'
+                  : 'System and user activities will appear here as operations occur.'
+              }
+            />
+          }
+        />
+      )}
 
       {meta && (
         <Pagination

@@ -13,6 +13,8 @@ import { useAuth } from '../../context/AuthContext.jsx';
 import { PageHeader } from '../../components/ui/PageHeader.jsx';
 import { DataTable } from '../../components/ui/DataTable.jsx';
 import { Button } from '../../components/ui/Button.jsx';
+import { EmptyState } from '../../components/ui/EmptyState.jsx';
+import { ErrorState } from '../../components/ui/ErrorState.jsx';
 import { Modal } from '../../components/ui/Modal.jsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { FormField } from '../../components/ui/FormField.jsx';
@@ -52,6 +54,7 @@ export function WarehousesPage() {
   const {
     data: warehouses = [],
     loading,
+    error,
     refetch,
   } = useFetch(() => listWarehousesApi({ search }), [search]);
 
@@ -224,12 +227,34 @@ export function WarehousesPage() {
         />
       </div>
 
-      <DataTable
-        columns={columns}
-        data={warehouses}
-        loading={loading}
-        onRowClick={canEdit ? handleOpenEdit : undefined}
-      />
+      {error ? (
+        <ErrorState
+          title="Failed to load warehouses"
+          message={error.message || 'Could not retrieve warehouse records.'}
+          onRetry={refetch}
+        />
+      ) : (
+        <DataTable
+          columns={columns}
+          data={warehouses}
+          loading={loading}
+          onRowClick={canEdit ? handleOpenEdit : undefined}
+          emptyState={
+            <EmptyState
+              icon={<WarehouseIcon className="w-8 h-8 text-zinc-400" />}
+              title="No warehouses found"
+              description={search ? `No warehouses match "${search}". Try a different keyword.` : 'Get started by creating your first physical warehouse.'}
+              action={
+                canEdit && !search && (
+                  <Button variant="primary" size="sm" onClick={handleOpenCreate} icon={<Plus className="w-4 h-4" />}>
+                    New Warehouse
+                  </Button>
+                )
+              }
+            />
+          }
+        />
+      )}
 
       {/* Create / Edit Modal */}
       <Modal
