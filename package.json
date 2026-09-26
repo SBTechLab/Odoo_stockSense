@@ -1,0 +1,19 @@
+{
+  "name": "stocksense",
+  "version": "0.1.0",
+  "private": true,
+  "description": "StockSense — Inventory Management System (hackathon monorepo)",
+  "workspaces": [
+    "server",
+    "client"
+  ],
+  "scripts": {
+    "dev": "concurrently -n server,client -c cyan,magenta \"npm run dev -w server\" \"npm run dev -w client\"",
+    "db:migrate": "npm run db:migrate -w server",
+    "db:seed": "npm run db:seed -w server",
+    "db:studio": "npm run db:studio -w server",
+    "lint": "npm run lint -w server && npm run lint -w client",
+    "build": "npm run build -w client"
+  },
+  "devDependencies": {}
+}
