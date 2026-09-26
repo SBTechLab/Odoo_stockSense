@@ -12,7 +12,6 @@ function zodDetails(err) {
  * Last middleware in the chain. Maps every error to the envelope
  * { success: false, error: { code, message, details? } }.
  */
-// eslint-disable-next-line no-unused-vars
 export function errorHandler(err, req, res, _next) {
   let status = 500;
   let code = 'INTERNAL_ERROR';
