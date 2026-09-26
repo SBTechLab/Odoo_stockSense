@@ -1,7 +1,7 @@
 import { prisma } from '../../lib/prisma.js';
 import { logActivity } from '../../lib/activity.js';
 import { eventBus, EVENTS } from '../../lib/eventBus.js';
-import { NotFoundError, ValidationError, InvalidStateError } from '../../lib/errors.js';
+import { NotFoundError, ValidationError, InvalidStateError, InsufficientStockError } from '../../lib/errors.js';
 import { parsePagination, buildMeta } from '../../lib/pagination.js';
 import { nextReference } from '../../services/sequence.service.js';
 import * as stockService from '../../services/stock.service.js';
@@ -78,25 +78,25 @@ export async function list(query) {
   const statuses = status ? status.split(',').map((s) => s.trim()) : undefined;
   const today = new Date(); today.setHours(0, 0, 0, 0);
 
-  const where = {
-    ...(type ? { type } : { type: { in: ['RECEIPT', 'DELIVERY', 'INTERNAL'] } }),
-    ...(statuses ? { status: { in: statuses } } : {}),
-    ...(warehouseId ? { warehouseId } : {}),
-    ...(locationId ? { OR: [{ sourceLocationId: locationId }, { destLocationId: locationId }] } : {}),
-    ...(contactId ? { contactId } : {}),
-    ...(late === 'true' ? { scheduledDate: { lt: today }, status: { notIn: ['DONE', 'CANCELED'] } } : {}),
-    ...(dateFrom || dateTo
-      ? { scheduledDate: { ...(dateFrom ? { gte: dateFrom } : {}), ...(dateTo ? { lte: dateTo } : {}) } }
-      : {}),
-    ...(search
-      ? {
-          OR: [
-            { reference: { contains: search, mode: 'insensitive' } },
-            { contact: { name: { contains: search, mode: 'insensitive' } } },
-          ],
-        }
-      : {}),
-  };
+  // Every filter goes into AND so filters on the same field (status, scheduledDate, OR)
+  // combine instead of overwriting each other.
+  const and = [type ? { type } : { type: { in: ['RECEIPT', 'DELIVERY', 'INTERNAL'] } }];
+  if (statuses) and.push({ status: { in: statuses } });
+  if (warehouseId) and.push({ warehouseId });
+  if (locationId) and.push({ OR: [{ sourceLocationId: locationId }, { destLocationId: locationId }] });
+  if (contactId) and.push({ contactId });
+  if (late === 'true') and.push({ scheduledDate: { lt: today }, status: { notIn: ['DONE', 'CANCELED'] } });
+  if (dateFrom) and.push({ scheduledDate: { gte: dateFrom } });
+  if (dateTo) and.push({ scheduledDate: { lte: dateTo } });
+  if (search) {
+    and.push({
+      OR: [
+        { reference: { contains: search, mode: 'insensitive' } },
+        { contact: { name: { contains: search, mode: 'insensitive' } } },
+      ],
+    });
+  }
+  const where = { AND: and };
 
   const [rows, total] = await Promise.all([
     prisma.operation.findMany({
@@ -239,6 +239,13 @@ export async function update(userId, id, body) {
 
   const { lines, sourceLocationId, destLocationId, ...headerFields } = body;
 
+  if (existing.type === 'INTERNAL') {
+    const src = sourceLocationId ?? existing.sourceLocationId;
+    const dest = destLocationId ?? existing.destLocationId;
+    if (!src || !dest) throw new ValidationError('Source and destination locations are required for internal transfers');
+    if (src === dest) throw new ValidationError('Source and destination locations must differ');
+  }
+
   const op = await prisma.$transaction(async (tx) => {
     if (lines) await validateLines(tx, lines);
 
@@ -331,11 +338,16 @@ export async function validate(userId, id) {
       // For outgoing ops, re-check availability inside the transaction
       if (['DELIVERY', 'INTERNAL'].includes(op.type)) {
         const availability = await stockService.checkAvailability({ id: op.id, sourceLocationId: op.sourceLocationId, lines: op.lines }, tx);
-        const hasShortage = availability.some((a) => a.shortBy > 0);
-        if (hasShortage) {
-          // Roll back to WAITING
-          await tx.operation.updateMany({ where: { id }, data: { status: 'WAITING', validatedById: null, validatedAt: null } });
-          throw Object.assign(new Error('Insufficient stock'), { code: 'INSUFFICIENT_STOCK', status: 409, details: availability.filter((a) => a.shortBy > 0) });
+        const short = availability.filter((a) => a.shortBy > 0);
+        if (short.length) {
+          const names = new Map(op.lines.map((l) => [l.productId, l.product?.name]));
+          const first = short[0];
+          throw new InsufficientStockError(
+            short.length === 1
+              ? `Not enough stock for ${names.get(first.productId) || 'a product'}: required ${first.required}, available ${first.available}`
+              : `Not enough stock for ${short.length} products`,
+            short.map((a) => ({ ...a, productName: names.get(a.productId) || null })),
+          );
         }
       }
 
@@ -362,8 +374,11 @@ export async function validate(userId, id) {
       return { operation: updated, productIds, locationIds };
     });
   } catch (err) {
-    if (err.code === 'INSUFFICIENT_STOCK') {
-      throw Object.assign(new Error(err.message), { status: 409, code: 'INSUFFICIENT_STOCK', details: err.details });
+    // The transaction rolled back (status is still READY). Outgoing operations that
+    // can no longer be fulfilled go back to WAITING so the UI shows "waiting for stock".
+    if (err instanceof InsufficientStockError && ['DELIVERY', 'INTERNAL'].includes(op.type)) {
+      await prisma.operation.updateMany({ where: { id, status: 'READY' }, data: { status: 'WAITING' } });
+      eventBus.emit(EVENTS.OPERATION_CHANGED, { id, type: op.type, status: 'WAITING' });
     }
     throw err;
   }
