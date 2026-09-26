@@ -18,10 +18,10 @@ import { FormField } from '../../components/ui/FormField.jsx';
 import { Select } from '../../components/ui/Select.jsx';
 import { Textarea } from '../../components/ui/Textarea.jsx';
 import { Combobox } from '../../components/ui/Combobox.jsx';
-import { StatusBadge, Badge } from '../../components/ui/Badge.jsx';
+import { StatusBadge } from '../../components/ui/StatusBadge.jsx';
 import { ConfirmDialog } from '../../components/ui/ConfirmDialog.jsx';
 import { Spinner } from '../../components/ui/Spinner.jsx';
-import { ArrowLeft, Plus, Trash2, Printer, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Printer, CheckCircle2 } from 'lucide-react';
 import clsx from 'clsx';
 
 const round3 = (n) => Math.round(n * 1000) / 1000;
@@ -319,7 +319,7 @@ export function AdjustmentFormPage() {
               Print Slip
             </Button>
           )}
-          <StatusBadge status={isNew ? 'DRAFT' : 'DONE'} size="md" />
+          <StatusBadge status={isNew ? 'DRAFT' : 'DONE'} />
         </div>
       </div>
 

@@ -1,4 +1,5 @@
 import clsx from 'clsx';
+export { StatusBadge } from './StatusBadge.jsx';
 
 /**
  * Generic Badge component rendered as a soft pill with a subtle ring.

@@ -184,7 +184,6 @@ All responses return a JSON envelope:
 
 ### 3.3 Adjustments (`/api/adjustments`)
 - `GET /api/adjustments`
-- `GET /api/adjustments/on-hand?locationId=uuid&productId=uuid` (Real-time system stock for count sheet)
 - `POST /api/adjustments`
   - Body: `{ "locationId": "uuid", "reason": "string", "notes"?: "string", "lines": [{ "productId": "uuid", "countedQuantity": 15 }] }`
   - Automatically executes delta moves and sets status `DONE`.
