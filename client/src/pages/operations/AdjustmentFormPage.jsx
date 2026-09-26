@@ -54,7 +54,7 @@ export function AdjustmentFormPage() {
 
   // References
   const { data: warehouses = [] } = useFetch(listWarehousesApi, []);
-  const { data: products = [] } = useFetch(listProductsApi, []);
+  const { data: products = [] } = useFetch(() => listProductsApi({ limit: 100 }), []);
 
   const {
     register,
@@ -92,11 +92,15 @@ export function AdjustmentFormPage() {
     }
   }, [warehouses, isNew, selectedWarehouseId, setValue]);
 
+  // Pick the warehouse's default location; re-pick when the warehouse changes
+  // so a location from another warehouse is never submitted.
   useEffect(() => {
-    if (isNew && locations.length > 0 && !selectedLocationId) {
-      setValue('locationId', locations[0].id);
-    }
-  }, [locations, isNew, selectedLocationId, setValue]);
+    if (!isNew || locations.length === 0) return;
+    if (locations.some((l) => l.id === selectedLocationId)) return;
+    const wh = warehouses.find((w) => w.id === selectedWarehouseId);
+    const def = locations.find((l) => l.id === wh?.defaultLocationId);
+    setValue('locationId', (def || locations[0]).id);
+  }, [locations, warehouses, selectedWarehouseId, isNew, selectedLocationId, setValue]);
 
   // Load existing adjustment detail
   useEffect(() => {

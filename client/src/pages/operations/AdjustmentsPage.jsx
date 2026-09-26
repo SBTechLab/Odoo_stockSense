@@ -38,6 +38,7 @@ export function AdjustmentsPage() {
 
   const {
     data,
+    meta: fetchedMeta,
     loading,
     error,
     refetch,
@@ -52,8 +53,8 @@ export function AdjustmentsPage() {
     [debouncedSearch, warehouseId, page]
   );
 
-  const adjustments = data?.data || (Array.isArray(data) ? data : []);
-  const meta = data?.meta || { totalPages: 1, page: 1, total: adjustments.length };
+  const adjustments = Array.isArray(data) ? data : [];
+  const meta = fetchedMeta || { totalPages: 1, page: 1, total: adjustments.length, limit: 20 };
 
   useSSE('operation.changed', (evt) => {
     if (evt.type === 'ADJUSTMENT') refetch();
@@ -217,7 +218,9 @@ export function AdjustmentsPage() {
               <Pagination
                 page={meta.page}
                 totalPages={meta.totalPages}
-                onChange={setPage}
+                total={meta.total}
+                limit={meta.limit}
+                onPageChange={setPage}
               />
             </div>
           )}

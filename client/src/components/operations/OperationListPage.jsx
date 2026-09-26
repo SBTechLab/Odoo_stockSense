@@ -89,7 +89,7 @@ export function OperationListPage({ type }) {
 
   const { data: warehouses = [] } = useFetch(listWarehousesApi, []);
 
-  const { data, loading, error, refetch } = useFetch(
+  const { data, meta: fetchedMeta, loading, error, refetch } = useFetch(
     () =>
       listOperationsApi({
         type,
@@ -104,7 +104,7 @@ export function OperationListPage({ type }) {
   );
 
   const operations = Array.isArray(data) ? data : [];
-  const meta = data?.meta || { totalPages: 1, page: 1, total: operations.length };
+  const meta = fetchedMeta || { totalPages: 1, page: 1, total: operations.length, limit: 25 };
 
   useSSE('operation.changed', (evt) => {
     if (!evt.type || evt.type === type) refetch();
@@ -279,7 +279,13 @@ export function OperationListPage({ type }) {
           />
           {meta.totalPages > 1 && (
             <div className="flex justify-end">
-              <Pagination page={meta.page} totalPages={meta.totalPages} onChange={(p) => setParam('page', p)} />
+              <Pagination
+                page={meta.page}
+                totalPages={meta.totalPages}
+                total={meta.total}
+                limit={meta.limit}
+                onPageChange={(p) => setParam('page', p)}
+              />
             </div>
           )}
         </div>
