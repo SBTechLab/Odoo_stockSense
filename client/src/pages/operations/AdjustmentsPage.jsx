@@ -61,53 +61,53 @@ export function AdjustmentsPage() {
 
   const columns = [
     {
+      key: 'reference',
       header: 'Reference',
-      accessorKey: 'reference',
-      cell: ({ row }) => (
+      render: (row) => (
         <span className="font-mono font-semibold text-zinc-900 dark:text-zinc-100 hover:text-teal-600 dark:hover:text-teal-400">
           {row.reference}
         </span>
       ),
     },
     {
+      key: 'sourceName',
       header: 'Location',
-      accessorKey: 'sourceName',
-      cell: ({ row }) => (
+      render: (row) => (
         <span className="text-zinc-700 dark:text-zinc-300 font-medium text-xs">
           {row.sourceName || '—'}
         </span>
       ),
     },
     {
+      key: 'reason',
       header: 'Reason',
-      accessorKey: 'reason',
-      cell: ({ row }) => {
+      render: (row) => {
         const color = REASON_COLORS[row.reason] || 'zinc';
         return <Badge color={color}>{row.reason?.replace('_', ' ') || 'OTHER'}</Badge>;
       },
     },
     {
+      key: 'createdAt',
       header: 'Date & Time',
-      accessorKey: 'createdAt',
-      cell: ({ row }) => (
+      render: (row) => (
         <span className="font-mono text-xs text-zinc-500">
           {row.createdAt ? new Date(row.createdAt).toLocaleDateString() : '—'}
         </span>
       ),
     },
     {
+      key: 'lineCount',
       header: 'Items',
-      accessorKey: 'lineCount',
-      cell: ({ row }) => (
+      render: (row) => (
         <span className="font-mono text-xs text-zinc-500">
           {row.lineCount} {row.lineCount === 1 ? 'item' : 'items'}
         </span>
       ),
     },
     {
+      key: 'totalDifference',
       header: 'Net Delta',
-      accessorKey: 'totalDifference',
-      cell: ({ row }) => {
+      render: (row) => {
         const diff = Number(row.totalDifference || 0);
         return (
           <span
@@ -126,9 +126,9 @@ export function AdjustmentsPage() {
       },
     },
     {
+      key: 'status',
       header: 'Status',
-      accessorKey: 'status',
-      cell: () => <StatusBadge status="DONE" />,
+      render: () => <StatusBadge status="DONE" />,
     },
   ];
 

@@ -51,7 +51,7 @@ export function SignupPage() {
     formState: { errors },
   } = useForm({
     resolver: zodResolver(signupSchema),
-    mode: 'onChange',
+    mode: 'onTouched',
   });
 
   const passwordValue = watch('password') || '';
@@ -72,7 +72,6 @@ export function SignupPage() {
         loginId: data.loginId,
         email: data.email,
         password: data.password,
-        confirmPassword: data.confirmPassword,
       });
       navigate(ROUTES.DASHBOARD);
     } catch (err) {
