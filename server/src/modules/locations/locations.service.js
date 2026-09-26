@@ -85,6 +85,7 @@ export async function create(userId, data) {
       shortCode: data.shortCode,
       type: data.type,
       warehouseId: data.warehouseId ?? null,
+      capacity: data.capacity ?? null,
       isActive: true,
     },
     include,
@@ -189,4 +190,61 @@ export async function remove(userId, id) {
   });
 
   return { message: 'Location deleted successfully' };
+}
+
+/**
+ * Products currently held in one location (used by the Warehouse Map drawer).
+ * Free to use = on hand − quantity reserved by READY deliveries/transfers leaving this location.
+ * @param {string} id location id
+ */
+export async function getStock(id) {
+  const loc = await prisma.location.findUnique({ where: { id }, include });
+  if (!loc) throw new NotFoundError('Location not found');
+
+  const [quants, reservedRows] = await Promise.all([
+    prisma.stockQuant.findMany({
+      where: { locationId: id, quantity: { gt: 0 } },
+      include: {
+        product: {
+          select: { id: true, name: true, sku: true, uom: true, costPrice: true, category: { select: { name: true } } },
+        },
+      },
+      orderBy: { quantity: 'desc' },
+    }),
+    prisma.operationLine.groupBy({
+      by: ['productId'],
+      _sum: { quantity: true },
+      where: { operation: { status: 'READY', type: { in: ['DELIVERY', 'INTERNAL'] }, sourceLocationId: id } },
+    }),
+  ]);
+  const reserved = new Map(reservedRows.map((r) => [r.productId, toNumber(r._sum.quantity)]));
+
+  const items = quants.map((q) => {
+    const onHand = toNumber(q.quantity);
+    const res = reserved.get(q.productId) ?? 0;
+    const unitCost = toNumber(q.product.costPrice);
+    return {
+      productId: q.productId,
+      name: q.product.name,
+      sku: q.product.sku,
+      uom: q.product.uom,
+      category: q.product.category?.name ?? null,
+      onHand,
+      reserved: res,
+      freeToUse: Math.max(0, Math.round((onHand - res) * 1000) / 1000),
+      unitCost,
+      value: Math.round(onHand * unitCost * 100) / 100,
+    };
+  });
+
+  const totalQty = items.reduce((s, i) => s + i.onHand, 0);
+  const capacity = loc.capacity === null ? null : toNumber(loc.capacity);
+  return {
+    location: shape(loc),
+    capacity,
+    totalQty,
+    utilization: capacity ? Math.round((totalQty / capacity) * 1000) / 10 : null,
+    totalValue: Math.round(items.reduce((s, i) => s + i.value, 0) * 100) / 100,
+    items,
+  };
 }

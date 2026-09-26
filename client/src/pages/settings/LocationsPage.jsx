@@ -40,6 +40,10 @@ const locationSchema = z.object({
     }),
   type: z.enum(['INTERNAL', 'VENDOR', 'CUSTOMER', 'ADJUSTMENT']),
   warehouseId: z.string().uuid().optional().nullable().or(z.literal('')),
+  // Optional max quantity for the Warehouse Map; '' = not set.
+  capacity: z
+    .union([z.literal(''), z.coerce.number().positive('Capacity must be greater than 0')])
+    .optional(),
 });
 
 export function LocationsPage() {
@@ -94,6 +98,7 @@ export function LocationsPage() {
       shortCode: '',
       type: 'INTERNAL',
       warehouseId: warehouses[0]?.id || '',
+      capacity: '',
     });
     setModalOpen(true);
   };
@@ -106,6 +111,7 @@ export function LocationsPage() {
       shortCode: loc.shortCode,
       type: loc.type,
       warehouseId: loc.warehouseId || '',
+      capacity: loc.capacity ?? '',
     });
     setModalOpen(true);
   };
@@ -118,6 +124,7 @@ export function LocationsPage() {
         shortCode: data.shortCode,
         type: data.type,
         warehouseId: data.type === 'INTERNAL' ? data.warehouseId || null : null,
+        capacity: data.type === 'INTERNAL' && data.capacity !== '' && data.capacity !== undefined ? Number(data.capacity) : null,
       };
 
       if (editingLocation) {
@@ -194,6 +201,16 @@ export function LocationsPage() {
       render: (loc) => (
         <span className="text-xs text-zinc-700 dark:text-zinc-300">
           {loc.warehouse ? `${loc.warehouse.name} (${loc.warehouse.shortCode})` : 'Global / Virtual'}
+        </span>
+      ),
+    },
+    {
+      key: 'capacity',
+      header: 'Capacity',
+      className: 'w-28',
+      render: (loc) => (
+        <span className="font-mono text-xs text-zinc-700 dark:text-zinc-300">
+          {loc.type !== 'INTERNAL' ? '—' : loc.capacity ? Number(loc.capacity).toLocaleString('en-IN') : 'Not set'}
         </span>
       ),
     },
@@ -405,6 +422,16 @@ export function LocationsPage() {
                   </option>
                 ))}
               </Select>
+            </FormField>
+          )}
+
+          {selectedType === 'INTERNAL' && (
+            <FormField
+              label="Capacity (units)"
+              error={errors.capacity?.message}
+              hint="Optional. Maximum quantity this location can hold. Used by the Warehouse Map."
+            >
+              <Input type="number" min="0" step="any" {...register('capacity')} />
             </FormField>
           )}
 

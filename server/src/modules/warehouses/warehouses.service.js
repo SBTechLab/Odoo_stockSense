@@ -108,3 +108,75 @@ export async function remove(userId, id) {
     await logActivity(tx, { userId, action: 'warehouse.delete', entityType: 'Warehouse', entityId: id, metadata: { name: w.name } });
   });
 }
+
+/** Utilization bands shared with the client legend. */
+export const UTILIZATION_BANDS = { warn: 70, critical: 90 };
+
+/**
+ * Visual map data: every active internal location of a warehouse with its stock
+ * totals and utilization (on-hand ÷ capacity). Locations without a capacity return
+ * utilization null (shown as "no capacity set").
+ * @param {string} id warehouse id
+ */
+export async function getMap(id) {
+  const w = await prisma.warehouse.findUnique({
+    where: { id },
+    select: { id: true, name: true, shortCode: true, address: true, defaultLocationId: true, isActive: true },
+  });
+  if (!w || !w.isActive) throw new NotFoundError('Warehouse not found');
+
+  const locations = await prisma.location.findMany({
+    where: { warehouseId: id, type: 'INTERNAL', isActive: true },
+    orderBy: [{ name: 'asc' }],
+    select: {
+      id: true,
+      name: true,
+      shortCode: true,
+      capacity: true,
+      quants: {
+        where: { quantity: { gt: 0 } },
+        select: { quantity: true, product: { select: { costPrice: true } } },
+      },
+    },
+  });
+
+  const round = (n, d = 1) => Math.round(n * 10 ** d) / 10 ** d;
+  const tiles = locations.map((l) => {
+    const totalQty = l.quants.reduce((s, q) => s + toNumber(q.quantity), 0);
+    const value = l.quants.reduce((s, q) => s + toNumber(q.quantity) * toNumber(q.product.costPrice), 0);
+    const capacity = l.capacity === null ? null : toNumber(l.capacity);
+    const utilization = capacity ? round((totalQty / capacity) * 100) : null;
+    const status =
+      utilization === null ? 'UNKNOWN' : utilization >= UTILIZATION_BANDS.critical ? 'CRITICAL' : utilization >= UTILIZATION_BANDS.warn ? 'WARNING' : 'OK';
+    return {
+      id: l.id,
+      name: l.name,
+      shortCode: l.shortCode,
+      fullName: `${w.shortCode}/${l.shortCode}`,
+      isDefault: l.id === w.defaultLocationId,
+      capacity,
+      totalQty: round(totalQty, 3),
+      productCount: l.quants.length,
+      value: round(value, 2),
+      utilization,
+      status,
+    };
+  });
+
+  const withCap = tiles.filter((t) => t.capacity);
+  const capSum = withCap.reduce((s, t) => s + t.capacity, 0);
+  const qtySum = withCap.reduce((s, t) => s + t.totalQty, 0);
+  return {
+    warehouse: w,
+    bands: UTILIZATION_BANDS,
+    summary: {
+      locationCount: tiles.length,
+      totalQty: round(tiles.reduce((s, t) => s + t.totalQty, 0), 3),
+      totalValue: round(tiles.reduce((s, t) => s + t.value, 0), 2),
+      overallUtilization: capSum ? round((qtySum / capSum) * 100) : null,
+      critical: tiles.filter((t) => t.status === 'CRITICAL').length,
+      warning: tiles.filter((t) => t.status === 'WARNING').length,
+    },
+    locations: tiles,
+  };
+}

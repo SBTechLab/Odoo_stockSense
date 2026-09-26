@@ -24,6 +24,13 @@ locationsRouter.post(
 );
 
 locationsRouter.get(
+  '/:id/stock',
+  requireRole(...CAN.VIEW),
+  validate(schema.locationIdParamSchema),
+  controller.getStock
+);
+
+locationsRouter.get(
   '/:id',
   requireRole(...CAN.VIEW),
   validate(schema.locationIdParamSchema),

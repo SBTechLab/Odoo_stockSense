@@ -23,6 +23,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  Map as MapIcon,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext.jsx';
 import { ROUTES } from '../../constants/routes.js';
@@ -56,6 +57,7 @@ export function Sidebar({ mobileOpen = false, onCloseMobile }) {
       label: 'OVERVIEW',
       items: [
         { name: 'Dashboard', href: ROUTES.DASHBOARD, icon: LayoutDashboard },
+        { name: 'Warehouse Map', href: ROUTES.WAREHOUSE_MAP, icon: MapIcon },
       ],
     },
     {

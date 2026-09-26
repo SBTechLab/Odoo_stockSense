@@ -35,6 +35,7 @@ import { ProductsPage } from './pages/products/ProductsPage.jsx';
 import { ProductFormPage } from './pages/products/ProductFormPage.jsx';
 import { CategoriesPage } from './pages/products/CategoriesPage.jsx';
 import { StockPage } from './pages/stock/StockPage.jsx';
+import { WarehouseMapPage } from './pages/warehouse-map/WarehouseMapPage.jsx';
 import { MovesPage } from './pages/moves/MovesPage.jsx';
 import { ReplenishmentPage } from './pages/replenishment/ReplenishmentPage.jsx';
 
@@ -127,6 +128,7 @@ export function AppRouter() {
         <Route path="/products/:id" element={<ProductFormPage />} />
         <Route path="/products/categories" element={<CategoriesPage />} />
         <Route path="/stock" element={<StockPage />} />
+        <Route path="/warehouse-map" element={<WarehouseMapPage />} />
         <Route path="/replenishment" element={<ReplenishmentPage />} />
         <Route path="/moves" element={<MovesPage />} />
 

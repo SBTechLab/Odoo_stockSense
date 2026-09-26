@@ -19,3 +19,8 @@ export async function updateWarehouseApi(id, data) {
 export async function deleteWarehouseApi(id) {
   return apiClient.delete(`/warehouses/${id}`);
 }
+
+/** Visual map: internal locations with capacity, stock totals and utilization. */
+export async function getWarehouseMapApi(id) {
+  return apiClient.get(`/warehouses/${id}/map`);
+}

@@ -28,6 +28,12 @@ export const createLocationSchema = {
       }),
     type: z.enum(['INTERNAL', 'VENDOR', 'CUSTOMER', 'ADJUSTMENT']).default('INTERNAL'),
     warehouseId: z.string().uuid('Invalid warehouse ID').optional().nullable(),
+    capacity: z.coerce
+      .number()
+      .positive('Capacity must be greater than 0')
+      .max(99999999999, 'Capacity is too large')
+      .optional()
+      .nullable(),
   }),
 };
 
@@ -49,6 +55,12 @@ export const updateLocationSchema = {
       .optional(),
     type: z.enum(['INTERNAL', 'VENDOR', 'CUSTOMER', 'ADJUSTMENT']).optional(),
     isActive: z.boolean().optional(),
+    capacity: z.coerce
+      .number()
+      .positive('Capacity must be greater than 0')
+      .max(99999999999, 'Capacity is too large')
+      .optional()
+      .nullable(),
   }),
 };
 

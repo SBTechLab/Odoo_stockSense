@@ -8,6 +8,7 @@ export const ROUTES = Object.freeze({
 
   // Dashboard
   DASHBOARD: '/dashboard',
+  WAREHOUSE_MAP: '/warehouse-map',
 
   // Operations
   OPERATIONS_RECEIPTS: '/operations/receipts',

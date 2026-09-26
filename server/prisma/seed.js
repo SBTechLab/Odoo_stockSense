@@ -108,10 +108,10 @@ async function main() {
   }
 
   const wh1Locations = [
-    { name: 'Stock', shortCode: 'STOCK', type: 'INTERNAL', isDefault: true },
-    { name: 'Rack A', shortCode: 'RACK-A', type: 'INTERNAL', isDefault: false },
-    { name: 'Rack B', shortCode: 'RACK-B', type: 'INTERNAL', isDefault: false },
-    { name: 'Production Floor', shortCode: 'PROD', type: 'INTERNAL', isDefault: false },
+    { name: 'Stock', shortCode: 'STOCK', type: 'INTERNAL', isDefault: true, capacity: 500 },
+    { name: 'Rack A', shortCode: 'RACK-A', type: 'INTERNAL', isDefault: false, capacity: 60 },
+    { name: 'Rack B', shortCode: 'RACK-B', type: 'INTERNAL', isDefault: false, capacity: 200 },
+    { name: 'Production Floor', shortCode: 'PROD', type: 'INTERNAL', isDefault: false, capacity: 50 },
   ];
 
   let wh1DefaultLocId = null;
@@ -123,11 +123,12 @@ async function main() {
           shortCode: loc.shortCode,
         },
       },
-      update: { name: loc.name, type: loc.type, isActive: true },
+      update: { name: loc.name, type: loc.type, capacity: loc.capacity, isActive: true },
       create: {
         name: loc.name,
         shortCode: loc.shortCode,
         type: loc.type,
+        capacity: loc.capacity,
         warehouseId: wh1.id,
         isActive: true,
       },

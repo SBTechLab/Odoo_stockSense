@@ -10,6 +10,7 @@ export const warehousesRouter = Router();
 warehousesRouter.use(requireAuth);
 
 warehousesRouter.get('/', validate({ query: s.listWarehousesQuery }), c.list);
+warehousesRouter.get('/:id/map', validate({ params: s.idParams }), c.map);
 warehousesRouter.get('/:id', validate({ params: s.idParams }), c.get);
 warehousesRouter.post('/', requireRole(CAN.MANAGE_MASTER_DATA), validate({ body: s.createWarehouseBody }), c.create);
 warehousesRouter.patch('/:id', requireRole(CAN.MANAGE_MASTER_DATA), validate({ params: s.idParams, body: s.updateWarehouseBody }), c.update);

@@ -9,6 +9,10 @@ export async function get(req, res) {
   ok(res, await service.getById(req.valid.params.id));
 }
 
+export async function map(req, res) {
+  ok(res, await service.getMap(req.valid.params.id));
+}
+
 export async function create(req, res) {
   ok(res, await service.create(req.user.id, req.valid.body), { status: 201 });
 }

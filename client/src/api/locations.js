@@ -19,3 +19,8 @@ export async function updateLocationApi(id, data) {
 export async function deleteLocationApi(id) {
   return apiClient.delete(`/locations/${id}`);
 }
+
+/** Products held in one location, with on hand / reserved / free to use. */
+export async function getLocationStockApi(id) {
+  return apiClient.get(`/locations/${id}/stock`);
+}

@@ -121,6 +121,8 @@ model Location {
   shortCode   String // uppercase, unique per warehouse
   type        LocationType @default(INTERNAL)
   warehouseId String? // null for virtual locations (VENDOR / CUSTOMER / ADJUSTMENT)
+  /// Max quantity the location can hold (any UoM). Optional; used by the Warehouse Map utilization view.
+  capacity    Decimal?     @db.Decimal(14, 3)
   isActive    Boolean      @default(true)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
