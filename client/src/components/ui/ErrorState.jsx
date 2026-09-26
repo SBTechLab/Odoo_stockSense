@@ -20,15 +20,15 @@ export function ErrorState({
   return (
     <div
       className={clsx(
-        'flex flex-col items-center justify-center p-8 text-center rounded-xl border border-rose-200 dark:border-rose-900/50 bg-rose-50/40 dark:bg-rose-950/20',
+        'flex flex-col items-center justify-center p-8 sm:p-12 text-center rounded-xl border border-rose-200/80 dark:border-rose-900/50 bg-rose-50/30 dark:bg-rose-950/15 transition-colors',
         className
       )}
     >
-      <div className="p-3 rounded-full bg-rose-100 dark:bg-rose-900/60 text-rose-600 dark:text-rose-400 mb-3">
-        <AlertCircle className="w-8 h-8" />
+      <div className="w-12 h-12 rounded-full bg-rose-100/80 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/20 flex items-center justify-center mb-3.5 shadow-2xs">
+        <AlertCircle className="w-6 h-6" />
       </div>
-      <h4 className="text-base font-semibold text-rose-900 dark:text-rose-200">{title}</h4>
-      <p className="text-xs text-rose-700 dark:text-rose-300 max-w-sm mt-1 mb-4">{message}</p>
+      <h4 className="text-base font-semibold text-zinc-900 dark:text-zinc-100">{title}</h4>
+      <p className="text-sm text-zinc-600 dark:text-zinc-400 max-w-sm mt-1.5 mb-5 leading-relaxed">{message}</p>
       {onRetry && (
         <Button
           variant="secondary"

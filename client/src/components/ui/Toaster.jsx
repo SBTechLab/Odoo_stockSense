@@ -14,7 +14,8 @@ export function Toaster() {
       richColors
       closeButton
       toastOptions={{
-        className: 'rounded-xl border shadow-lg font-sans text-xs',
+        className: 'rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 shadow-lg font-sans text-xs p-3.5',
+        descriptionClassName: 'text-zinc-500 dark:text-zinc-400 mt-1',
       }}
     />
   );

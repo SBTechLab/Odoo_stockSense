@@ -35,9 +35,9 @@ export function Pagination({
     >
       <div className="flex items-center gap-2">
         <span>
-          Showing <strong className="text-zinc-800 dark:text-zinc-200">{fromRecord}</strong> to{' '}
-          <strong className="text-zinc-800 dark:text-zinc-200">{toRecord}</strong> of{' '}
-          <strong className="text-zinc-800 dark:text-zinc-200">{total}</strong> records
+          Showing <strong className="font-mono text-zinc-800 dark:text-zinc-200 tabular-nums">{fromRecord}</strong> to{' '}
+          <strong className="font-mono text-zinc-800 dark:text-zinc-200 tabular-nums">{toRecord}</strong> of{' '}
+          <strong className="font-mono text-zinc-800 dark:text-zinc-200 tabular-nums">{total}</strong> records
         </span>
 
         {onLimitChange && (
@@ -46,7 +46,8 @@ export function Pagination({
             <select
               value={limit}
               onChange={(e) => onLimitChange(Number(e.target.value))}
-              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded px-2 py-1 text-xs text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-1 focus:ring-teal-500 cursor-pointer"
+              aria-label="Records per page"
+              className="bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 rounded-lg px-2.5 py-1 text-xs font-mono text-zinc-800 dark:text-zinc-200 focus:outline-none focus:ring-2 focus:ring-teal-500/25 focus:border-teal-600 cursor-pointer shadow-2xs"
             >
               <option value={10}>10</option>
               <option value={20}>20</option>
@@ -57,18 +58,18 @@ export function Pagination({
         )}
       </div>
 
-      <div className="flex items-center gap-1.5">
+      <div className="flex items-center gap-2">
         <Button
           variant="secondary"
           size="sm"
           disabled={page <= 1}
           onClick={() => onPageChange(page - 1)}
-          icon={<ChevronLeft className="w-4 h-4" />}
+          icon={<ChevronLeft className="w-3.5 h-3.5" />}
         >
           Previous
         </Button>
 
-        <span className="px-3 py-1 text-xs font-medium text-zinc-700 dark:text-zinc-300">
+        <span className="px-2.5 py-1 text-xs font-mono font-medium text-zinc-700 dark:text-zinc-300 tabular-nums">
           Page {page} of {totalPages || 1}
         </span>
 
@@ -77,7 +78,7 @@ export function Pagination({
           size="sm"
           disabled={page >= totalPages}
           onClick={() => onPageChange(page + 1)}
-          iconRight={<ChevronRight className="w-4 h-4" />}
+          iconRight={<ChevronRight className="w-3.5 h-3.5" />}
         >
           Next
         </Button>

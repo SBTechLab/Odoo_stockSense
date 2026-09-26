@@ -13,13 +13,13 @@ export function DirectionBadge({ type, showPrefixOnly = false, className }) {
   const config = OPERATION_TYPE_CONFIG[type] || {
     label: type || 'MOVE',
     prefix: type || 'MOV',
-    colorClass: 'bg-zinc-100 text-zinc-700 border-zinc-200 dark:bg-zinc-800 dark:text-zinc-300 dark:border-zinc-700',
+    colorClass: 'bg-zinc-100/80 text-zinc-700 ring-1 ring-zinc-600/20 dark:bg-zinc-800/60 dark:text-zinc-300 dark:ring-zinc-700/60',
   };
 
   return (
     <span
       className={clsx(
-        'inline-flex items-center justify-center font-mono font-bold text-[11px] px-2 py-0.5 rounded border select-none',
+        'inline-flex items-center justify-center font-mono font-semibold text-[11px] px-2 py-0.5 rounded-md select-none transition-colors tracking-tight',
         config.colorClass,
         className
       )}

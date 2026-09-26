@@ -22,7 +22,7 @@ export function KanbanBoard({
   return (
     <div
       className={clsx(
-        'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 overflow-x-auto pb-4',
+        'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 gap-4 overflow-x-auto pb-4 items-start',
         className
       )}
     >
@@ -32,24 +32,25 @@ export function KanbanBoard({
         return (
           <div
             key={col.id}
-            className="flex flex-col rounded-xl bg-zinc-100/70 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 min-w-[260px] p-3 max-h-[calc(100vh-220px)]"
+            className="flex flex-col rounded-xl bg-zinc-100/60 dark:bg-zinc-900/40 border border-zinc-200/80 dark:border-zinc-800/80 min-w-[270px] p-3 max-h-[calc(100vh-220px)]"
           >
             {/* Column Header */}
-            <div className="flex items-center justify-between pb-3 mb-2 border-b border-zinc-200/60 dark:border-zinc-800/60">
+            <div className="flex items-center justify-between pb-3 mb-2.5 border-b border-zinc-200/60 dark:border-zinc-800/60">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
+                <span className="w-2 h-2 rounded-full bg-teal-500" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-zinc-700 dark:text-zinc-300">
                   {col.title}
                 </span>
-                <span className="text-[11px] font-mono font-semibold px-1.5 py-0.2 rounded-full bg-zinc-200 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
-                  {columnItems.length}
-                </span>
               </div>
+              <span className="text-[11px] font-mono font-medium px-2 py-0.5 rounded-full bg-zinc-200/70 dark:bg-zinc-800 text-zinc-600 dark:text-zinc-400">
+                {columnItems.length}
+              </span>
             </div>
 
             {/* Column Cards */}
-            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1">
+            <div className="flex-1 overflow-y-auto space-y-2.5 pr-1 no-scrollbar">
               {columnItems.length === 0 ? (
-                <div className="py-8 text-center text-xs text-zinc-400 dark:text-zinc-500 italic">
+                <div className="py-10 text-center text-xs text-zinc-400 dark:text-zinc-500 italic">
                   No items
                 </div>
               ) : (
@@ -58,8 +59,8 @@ export function KanbanBoard({
                     key={item.id || idx}
                     onClick={() => onCardClick?.(item)}
                     className={clsx(
-                      'transition-all',
-                      onCardClick && 'cursor-pointer hover:-translate-y-0.5'
+                      'transition-all duration-150',
+                      onCardClick && 'cursor-pointer hover:-translate-y-0.5 hover:shadow-md'
                     )}
                   >
                     {renderCard(item)}

@@ -71,19 +71,26 @@ export function SearchInput({
         onChange={(e) => setQuery(e.target.value)}
         placeholder={placeholder}
         className={clsx(
-          'w-full rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 pl-9 pr-8 py-2 min-h-[40px] transition-colors',
+          'w-full rounded-lg text-sm bg-white dark:bg-zinc-900 border border-zinc-300 dark:border-zinc-700 pl-9 pr-9 min-h-[40px] md:min-h-[36px] md:h-9 py-1.5 transition-colors',
           'placeholder:text-zinc-400 dark:placeholder:text-zinc-500 text-zinc-900 dark:text-zinc-100',
-          'focus:outline-none focus:ring-2 focus:ring-teal-500 focus:border-teal-500'
+          'focus:outline-none focus:ring-2 focus:ring-teal-500/25 focus:border-teal-600 dark:focus:border-teal-500 shadow-2xs'
         )}
       />
-      {query && (
+      {query ? (
         <button
           type="button"
           onClick={handleClear}
-          className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200"
+          aria-label="Clear search"
+          className="absolute inset-y-0 right-0 pr-2.5 flex items-center text-zinc-400 hover:text-zinc-600 dark:hover:text-zinc-200 cursor-pointer"
         >
           <X className="w-3.5 h-3.5" />
         </button>
+      ) : (
+        <div className="hidden sm:flex absolute inset-y-0 right-0 pr-2.5 items-center pointer-events-none">
+          <kbd className="font-mono text-[10px] font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-400 dark:text-zinc-500 px-1.5 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
+            /
+          </kbd>
+        </div>
       )}
     </div>
   );

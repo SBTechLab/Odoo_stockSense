@@ -12,8 +12,10 @@ import { List, LayoutGrid } from 'lucide-react';
 export function ViewToggle({ view = 'list', onChange, className }) {
   return (
     <div
+      role="group"
+      aria-label="View layout toggle"
       className={clsx(
-        'inline-flex items-center rounded-lg border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-0.5 select-none shadow-xs',
+        'inline-flex items-center rounded-lg border border-zinc-200 dark:border-zinc-800 bg-zinc-100/80 dark:bg-zinc-800/60 p-0.5 select-none shadow-2xs min-h-[36px] sm:min-h-[32px]',
         className
       )}
     >
@@ -21,10 +23,11 @@ export function ViewToggle({ view = 'list', onChange, className }) {
         type="button"
         onClick={() => onChange('list')}
         aria-label="List view"
+        aria-pressed={view === 'list'}
         className={clsx(
-          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer',
+          'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer',
           view === 'list'
-            ? 'bg-zinc-100 dark:bg-zinc-800 text-teal-700 dark:text-teal-300 font-semibold shadow-xs'
+            ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-semibold shadow-xs'
             : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
         )}
       >
@@ -36,10 +39,11 @@ export function ViewToggle({ view = 'list', onChange, className }) {
         type="button"
         onClick={() => onChange('kanban')}
         aria-label="Kanban view"
+        aria-pressed={view === 'kanban'}
         className={clsx(
-          'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer',
+          'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer',
           view === 'kanban'
-            ? 'bg-zinc-100 dark:bg-zinc-800 text-teal-700 dark:text-teal-300 font-semibold shadow-xs'
+            ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-semibold shadow-xs'
             : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
         )}
       >

@@ -20,9 +20,20 @@ export function DropdownMenu({ trigger, items = [], align = 'right', className }
         setIsOpen(false);
       }
     }
+
+    function handleKeyDown(e) {
+      if (e.key === 'Escape' && isOpen) {
+        setIsOpen(false);
+      }
+    }
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isOpen]);
 
   return (
     <div ref={menuRef} className={clsx('relative inline-block text-left', className)}>
@@ -35,7 +46,7 @@ export function DropdownMenu({ trigger, items = [], align = 'right', className }
           role="menu"
           aria-orientation="vertical"
           className={clsx(
-            'absolute z-50 mt-1.5 w-48 rounded-lg bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-lg p-1 animate-in fade-in-0 zoom-in-95',
+            'absolute z-50 mt-1.5 w-52 rounded-xl bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-lg p-1.5 backdrop-blur-md animate-in fade-in-0 zoom-in-95 duration-150',
             align === 'right' ? 'right-0' : 'left-0'
           )}
         >
@@ -50,14 +61,14 @@ export function DropdownMenu({ trigger, items = [], align = 'right', className }
                 setIsOpen(false);
               }}
               className={clsx(
-                'w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-md transition-colors cursor-pointer text-left',
+                'w-full flex items-center gap-2.5 px-3 py-2 text-xs font-medium rounded-lg transition-colors cursor-pointer text-left',
                 item.danger
                   ? 'text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/50'
                   : 'text-zinc-700 dark:text-zinc-300 hover:bg-zinc-100 dark:hover:bg-zinc-800',
                 item.disabled && 'opacity-50 pointer-events-none'
               )}
             >
-              {item.icon && <span className="shrink-0">{item.icon}</span>}
+              {item.icon && <span className="shrink-0 text-zinc-400 dark:text-zinc-500">{item.icon}</span>}
               <span>{item.label}</span>
             </button>
           ))}

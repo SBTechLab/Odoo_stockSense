@@ -1,6 +1,6 @@
 import { Modal } from './Modal.jsx';
 import { Button } from './Button.jsx';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, AlertCircle } from 'lucide-react';
 
 /**
  * Standard confirmation dialog component.
@@ -34,8 +34,13 @@ export function ConfirmDialog({
       title={title}
       size="sm"
       footer={
-        <>
-          <Button variant="secondary" size="sm" onClick={onClose} disabled={loading}>
+        <div className="flex items-center justify-end gap-2.5 w-full">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={onClose}
+            disabled={loading}
+          >
             {cancelText}
           </Button>
           <Button
@@ -46,16 +51,22 @@ export function ConfirmDialog({
           >
             {confirmText}
           </Button>
-        </>
+        </div>
       }
     >
-      <div className="flex items-start gap-3">
-        {isDanger && (
-          <div className="p-2 rounded-full bg-rose-100 dark:bg-rose-950/60 text-rose-600 shrink-0">
+      <div className="flex items-start gap-3.5 py-1">
+        {isDanger ? (
+          <div className="w-10 h-10 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/20 flex items-center justify-center shrink-0">
             <AlertTriangle className="w-5 h-5" />
           </div>
+        ) : (
+          <div className="w-10 h-10 rounded-full bg-teal-50 dark:bg-teal-950/40 text-teal-600 dark:text-teal-400 ring-1 ring-teal-500/20 flex items-center justify-center shrink-0">
+            <AlertCircle className="w-5 h-5" />
+          </div>
         )}
-        <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">{message}</p>
+        <div className="flex-1 min-w-0 pt-0.5">
+          <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">{message}</p>
+        </div>
       </div>
     </Modal>
   );

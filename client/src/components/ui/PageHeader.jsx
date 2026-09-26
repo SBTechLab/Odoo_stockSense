@@ -3,7 +3,7 @@ import clsx from 'clsx';
 import { ChevronRight } from 'lucide-react';
 
 /**
- * Standard PageHeader component with breadcrumbs, title, and action buttons.
+ * Standard PageHeader component with breadcrumbs, 24px semibold title, and action buttons.
  *
  * @param {Object} props
  * @param {string} props.title
@@ -28,7 +28,7 @@ export function PageHeader({
             const isLast = idx === breadcrumbs.length - 1;
             return (
               <span key={idx} className="flex items-center gap-1.5">
-                {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-zinc-400 shrink-0" />}
+                {idx > 0 && <ChevronRight className="w-3.5 h-3.5 text-zinc-400/80 shrink-0" />}
                 {crumb.href && !isLast ? (
                   <Link
                     to={crumb.href}
@@ -50,11 +50,13 @@ export function PageHeader({
       {/* Title & Actions Bar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-zinc-900 dark:text-zinc-100">
+          <h1 className="text-2xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-100">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1">{subtitle}</p>
+            <p className="text-sm text-zinc-500 dark:text-zinc-400 mt-1 leading-normal">
+              {subtitle}
+            </p>
           )}
         </div>
 

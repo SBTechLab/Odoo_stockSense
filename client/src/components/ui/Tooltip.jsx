@@ -32,7 +32,7 @@ export function Tooltip({ content, children, position = 'top' }) {
         <div
           role="tooltip"
           className={clsx(
-            'absolute z-50 px-2 py-1 text-[11px] font-medium text-white bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 rounded shadow-md pointer-events-none whitespace-nowrap animate-in fade-in-0 zoom-in-95',
+            'absolute z-50 px-2.5 py-1 text-[11px] font-medium text-white bg-zinc-900 dark:bg-zinc-100 dark:text-zinc-900 rounded-md shadow-md ring-1 ring-zinc-800/10 pointer-events-none whitespace-nowrap animate-in fade-in-0 zoom-in-95 duration-100',
             positions[position]
           )}
         >

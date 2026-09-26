@@ -1,8 +1,13 @@
-# StockSense — UI Component Kit & Documentation
-
 > **Target Audience:** Member 1, Member 2, Member 3  
 > **Location:** `client/src/components/ui/`  
-> All components are fully responsive, accessible, dark-mode ready, and styled via Tailwind CSS v4.
+> **Live Showcase:** Available in app at `/dev/ui`  
+> All components are fully responsive, accessible, dark-mode ready, and styled via Tailwind CSS v4.  
+> **Sizing Rule:** Desktop controls are crisp 36px (`md:min-h-[36px] md:h-9`), but touch targets on mobile below `md` breakpoint are at least 40px tall (`min-h-[40px]`). Small buttons (`size="sm"`) are 32px on desktop.
+
+---
+
+## Live Component Showcase
+Visit **`/dev/ui`** in your browser at any time to inspect all components, states, variants, and light/dark theme appearances in one interactive view.
 
 ---
 
