@@ -7,7 +7,9 @@ import { useState, useEffect, useCallback, useRef } from 'react';
  * @returns {{ data: any, meta: any, loading: boolean, error: any, refetch: () => Promise<void>, setData: Function }}
  */
 export function useFetch(fetcher, deps = []) {
-  const [data, setData] = useState(null);
+  // Starts as `undefined` (not null) so callers can safely use destructuring
+  // defaults like `const { data: rows = [] } = useFetch(...)` before the first response.
+  const [data, setData] = useState(undefined);
   const [meta, setMeta] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -26,7 +28,7 @@ export function useFetch(fetcher, deps = []) {
     try {
       const res = await fetcher();
       if (isMounted.current) {
-        setData(res?.data !== undefined ? res.data : res);
+        setData(res?.data !== undefined ? (res.data ?? undefined) : res);
         setMeta(res?.meta || null);
       }
     } catch (err) {
