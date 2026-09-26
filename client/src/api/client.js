@@ -7,6 +7,18 @@ export const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
 });
+apiClient.interceptors.request.use((config) => {
+  if (config.params) {
+    const cleanParams = {};
+    for (const key in config.params) {
+      if (config.params[key] !== '' && config.params[key] !== null) {
+        cleanParams[key] = config.params[key];
+      }
+    }
+    config.params = cleanParams;
+  }
+  return config;
+});
 
 apiClient.interceptors.response.use(
   (response) => {
