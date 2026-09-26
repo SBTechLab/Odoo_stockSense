@@ -72,6 +72,7 @@ export function SignupPage() {
         loginId: data.loginId,
         email: data.email,
         password: data.password,
+        confirmPassword: data.confirmPassword,
       });
       navigate(ROUTES.DASHBOARD);
     } catch (err) {

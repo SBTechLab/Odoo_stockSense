@@ -10,7 +10,30 @@ import { X } from 'lucide-react';
  * @param {() => void} [props.onClearAll]
  * @param {string} [props.className]
  */
-export function FilterChips({ filters = [], onRemove, onClearAll, className }) {
+export function FilterChips({ filters = [], onRemove, onClearAll, chips, activeId, onChange, className }) {
+  // Support chips/activeId/onChange API (tab-style filter chips)
+  if (chips) {
+    return (
+      <div className={clsx('flex flex-wrap items-center gap-1.5', className)}>
+        {chips.map((chip) => (
+          <button
+            key={chip.id}
+            type="button"
+            onClick={() => onChange?.(chip.id)}
+            className={clsx(
+              'inline-flex items-center px-3 py-1 rounded-full text-xs font-medium border transition-colors cursor-pointer',
+              activeId === chip.id
+                ? 'bg-teal-600 text-white border-teal-600'
+                : 'bg-white dark:bg-zinc-900 text-zinc-600 dark:text-zinc-400 border-zinc-200 dark:border-zinc-800 hover:border-zinc-300'
+            )}
+          >
+            {chip.label}
+          </button>
+        ))}
+      </div>
+    );
+  }
+
   if (filters.length === 0) return null;
 
   return (

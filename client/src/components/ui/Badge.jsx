@@ -12,11 +12,23 @@ import clsx from 'clsx';
  */
 export function Badge({
   variant = 'zinc',
+  color,
   size = 'md',
+  dot,
   icon,
   children,
   className,
 }) {
+  // Support both variant names and color names
+  const VARIANT_MAP = {
+    success: 'emerald',
+    warning: 'amber',
+    danger: 'rose',
+    neutral: 'zinc',
+    info: 'sky',
+    primary: 'teal',
+  };
+  const resolvedVariant = color || VARIANT_MAP[variant] || variant;
   const variants = {
     zinc: 'bg-zinc-100/80 text-zinc-700 ring-1 ring-zinc-600/20 dark:bg-zinc-800/60 dark:text-zinc-300 dark:ring-zinc-700/60',
     teal: 'bg-teal-50 text-teal-700 ring-1 ring-teal-600/20 dark:bg-teal-950/40 dark:text-teal-300 dark:ring-teal-500/30',
@@ -38,7 +50,7 @@ export function Badge({
     <span
       className={clsx(
         'inline-flex items-center rounded-full shrink-0 select-none transition-colors',
-        variants[variant],
+        variants[resolvedVariant] || variants.zinc,
         sizes[size],
         className
       )}

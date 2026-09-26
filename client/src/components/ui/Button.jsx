@@ -22,6 +22,7 @@ export const Button = forwardRef(function Button(
     size = 'md',
     loading = false,
     icon,
+    leftIcon,
     iconRight,
     children,
     className,
@@ -32,6 +33,7 @@ export const Button = forwardRef(function Button(
   },
   ref
 ) {
+  icon = icon || leftIcon;
   const isIconOnly = !children && (icon || iconRight);
 
   const baseStyles =

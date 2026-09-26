@@ -173,9 +173,9 @@ export function ContactsPage() {
 
   const columns = [
     {
+      key: 'name',
       header: 'Contact Name',
-      accessorKey: 'name',
-      cell: ({ row }) => (
+      render: (row) => (
         <div className="flex items-start gap-3 py-1">
           <div className="w-8 h-8 rounded-lg bg-teal-50 dark:bg-teal-950/60 border border-teal-200 dark:border-teal-800/80 flex items-center justify-center shrink-0 text-teal-700 dark:text-teal-400 mt-0.5">
             <Building2 className="w-4 h-4" />
@@ -192,17 +192,17 @@ export function ContactsPage() {
       ),
     },
     {
+      key: 'type',
       header: 'Type',
-      accessorKey: 'type',
-      cell: ({ row }) => {
+      render: (row) => {
         const conf = TYPE_CONFIG[row.type] || { label: row.type, color: 'zinc' };
         return <Badge color={conf.color}>{conf.label}</Badge>;
       },
     },
     {
+      key: 'contactInfo',
       header: 'Contact Info',
-      accessorKey: 'contactInfo',
-      cell: ({ row }) => (
+      render: (row) => (
         <div className="space-y-0.5 text-xs text-zinc-600 dark:text-zinc-400">
           {row.phone && (
             <div className="flex items-center gap-1.5 font-mono">
@@ -221,9 +221,9 @@ export function ContactsPage() {
       ),
     },
     {
+      key: 'gstin',
       header: 'GSTIN',
-      accessorKey: 'gstin',
-      cell: ({ row }) =>
+      render: (row) =>
         row.gstin ? (
           <span className="font-mono text-xs font-medium text-zinc-800 dark:text-zinc-200 bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 rounded border border-zinc-200 dark:border-zinc-700">
             {row.gstin}
@@ -233,19 +233,19 @@ export function ContactsPage() {
         ),
     },
     {
+      key: 'operations',
       header: 'Operations',
-      accessorKey: '_count.operations',
-      cell: ({ row }) => (
+      render: (row) => (
         <span className="text-xs font-mono text-zinc-600 dark:text-zinc-400">
           {row._count?.operations ?? 0}
         </span>
       ),
     },
     {
+      key: 'actions',
       header: 'Actions',
-      id: 'actions',
       className: 'text-right',
-      cell: ({ row }) => (
+      render: (row) => (
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <Button
             variant="ghost"

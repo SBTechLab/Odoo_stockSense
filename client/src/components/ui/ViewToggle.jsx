@@ -9,7 +9,12 @@ import { List, LayoutGrid } from 'lucide-react';
  * @param {(newView: 'list'|'kanban') => void} props.onChange
  * @param {string} [props.className]
  */
-export function ViewToggle({ view = 'list', onChange, className }) {
+export function ViewToggle({ view = 'list', onChange, options, className }) {
+  const resolvedOptions = options || [
+    { id: 'list', label: 'List', icon: <List className="w-3.5 h-3.5" /> },
+    { id: 'kanban', label: 'Kanban', icon: <LayoutGrid className="w-3.5 h-3.5" /> },
+  ];
+
   return (
     <div
       role="group"
@@ -19,37 +24,24 @@ export function ViewToggle({ view = 'list', onChange, className }) {
         className
       )}
     >
-      <button
-        type="button"
-        onClick={() => onChange('list')}
-        aria-label="List view"
-        aria-pressed={view === 'list'}
-        className={clsx(
-          'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer',
-          view === 'list'
-            ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-semibold shadow-xs'
-            : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
-        )}
-      >
-        <List className="w-3.5 h-3.5" />
-        <span>List</span>
-      </button>
-
-      <button
-        type="button"
-        onClick={() => onChange('kanban')}
-        aria-label="Kanban view"
-        aria-pressed={view === 'kanban'}
-        className={clsx(
-          'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer',
-          view === 'kanban'
-            ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-semibold shadow-xs'
-            : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
-        )}
-      >
-        <LayoutGrid className="w-3.5 h-3.5" />
-        <span>Kanban</span>
-      </button>
+      {resolvedOptions.map((opt) => (
+        <button
+          key={opt.id}
+          type="button"
+          onClick={() => onChange(opt.id)}
+          aria-label={opt.label}
+          aria-pressed={view === opt.id}
+          className={clsx(
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all cursor-pointer',
+            view === opt.id
+              ? 'bg-white dark:bg-zinc-900 text-zinc-900 dark:text-zinc-100 font-semibold shadow-xs'
+              : 'text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-200'
+          )}
+        >
+          {opt.icon || (opt.id === 'list' ? <List className="w-3.5 h-3.5" /> : opt.id === 'kanban' ? <LayoutGrid className="w-3.5 h-3.5" /> : null)}
+          <span>{opt.label}</span>
+        </button>
+      ))}
     </div>
   );
 }

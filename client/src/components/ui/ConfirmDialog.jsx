@@ -18,18 +18,24 @@ import { AlertTriangle, AlertCircle } from 'lucide-react';
  */
 export function ConfirmDialog({
   isOpen,
+  open,
   onClose,
   onConfirm,
   title = 'Confirm Action',
   message,
+  description,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   isDanger = false,
+  variant,
   loading = false,
 }) {
+  const visible = isOpen ?? open;
+  const danger = isDanger || variant === 'danger';
+  const displayMessage = message || description;
   return (
     <Modal
-      isOpen={isOpen}
+      isOpen={visible}
       onClose={onClose}
       title={title}
       size="sm"
@@ -44,7 +50,7 @@ export function ConfirmDialog({
             {cancelText}
           </Button>
           <Button
-            variant={isDanger ? 'danger' : 'primary'}
+            variant={danger ? 'danger' : 'primary'}
             size="sm"
             onClick={onConfirm}
             loading={loading}
@@ -55,7 +61,7 @@ export function ConfirmDialog({
       }
     >
       <div className="flex items-start gap-3.5 py-1">
-        {isDanger ? (
+        {danger ? (
           <div className="w-10 h-10 rounded-full bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 ring-1 ring-rose-500/20 flex items-center justify-center shrink-0">
             <AlertTriangle className="w-5 h-5" />
           </div>
@@ -65,7 +71,7 @@ export function ConfirmDialog({
           </div>
         )}
         <div className="flex-1 min-w-0 pt-0.5">
-          <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">{message}</p>
+          <p className="text-sm text-zinc-600 dark:text-zinc-300 leading-relaxed">{displayMessage}</p>
         </div>
       </div>
     </Modal>

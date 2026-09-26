@@ -17,8 +17,10 @@ export function PageHeader({
   subtitle,
   breadcrumbs = [],
   actions,
+  action,
   className,
 }) {
+  const resolvedActions = actions || action;
   return (
     <div className={clsx('flex flex-col gap-2 mb-6', className)}>
       {/* Breadcrumbs */}
@@ -60,7 +62,7 @@ export function PageHeader({
           )}
         </div>
 
-        {actions && <div className="flex items-center gap-2.5 shrink-0">{actions}</div>}
+        {resolvedActions && <div className="flex items-center gap-2.5 shrink-0">{resolvedActions}</div>}
       </div>
     </div>
   );
