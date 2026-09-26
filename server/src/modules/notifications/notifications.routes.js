@@ -1,18 +1,13 @@
 import { Router } from 'express';
 import { requireAuth } from '../../middleware/auth.js';
+import { validate } from '../../middleware/validate.js';
+import * as c from './notifications.controller.js';
+import * as s from './notifications.schema.js';
 
 export const notificationsRouter = Router();
 
 notificationsRouter.use(requireAuth);
 
-const stub = (req, res) => {
-  res.status(501).json({
-    success: false,
-    error: {
-      code: 'NOT_IMPLEMENTED',
-      message: 'Notifications module is scheduled for implementation by Member 3',
-    },
-  });
-};
-
-notificationsRouter.use(stub);
+notificationsRouter.get('/', validate({ query: s.listNotificationsQuery }), c.list);
+notificationsRouter.patch('/:id/read', validate({ params: s.idParams }), c.markAsRead);
+notificationsRouter.post('/read-all', c.markAllAsRead);
